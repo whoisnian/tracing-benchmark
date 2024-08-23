@@ -26,6 +26,8 @@ func main() {
 
 	global.SetupRedis()
 	global.LOG.Info("setup redis successfully")
+	global.SetupMySQL()
+	global.LOG.Info("setup mysql successfully")
 
 	server := &http.Server{
 		Addr:              global.CFG.ListenAddr,

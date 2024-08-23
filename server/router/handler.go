@@ -21,3 +21,13 @@ func pingRedisHandler(c *gin.Context) {
 	}
 	c.String(http.StatusOK, "pong")
 }
+
+func pingMysqlHandler(c *gin.Context) {
+	err := global.DB.Raw("SELECT 1").Error
+	if err != nil {
+		global.LOG.ErrorContext(c.Request.Context(), "mysql select 1", slog.Any("error", err))
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.String(http.StatusOK, "pong")
+}

@@ -26,6 +26,7 @@ func Setup() *gin.Engine {
 
 	engine.Handle(http.MethodGet, "/ping/raw", pingRawHandler)
 	engine.Handle(http.MethodGet, "/ping/redis", pingRedisHandler)
+	engine.Handle(http.MethodGet, "/ping/mysql", pingMysqlHandler)
 
 	return engine
 }
