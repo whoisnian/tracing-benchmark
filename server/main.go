@@ -1,14 +1,17 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/whoisnian/tracing-benchmark/server/global"
+	"github.com/whoisnian/tracing-benchmark/server/router"
 )
 
 func main() {
@@ -21,9 +24,16 @@ func main() {
 		return
 	}
 
+	server := &http.Server{
+		Addr:              global.CFG.ListenAddr,
+		Handler:           router.Setup(),
+		ReadHeaderTimeout: time.Second * 10,
+		WriteTimeout:      time.Second * 180,
+		MaxHeaderBytes:    http.DefaultMaxHeaderBytes,
+	}
 	go func() {
 		global.LOG.Info("service is starting: " + global.CFG.ListenAddr)
-		if err := http.ListenAndServe(global.CFG.ListenAddr, nil); errors.Is(err, http.ErrServerClosed) {
+		if err := server.ListenAndServe(); errors.Is(err, http.ErrServerClosed) {
 			global.LOG.Warn("service is shutting down")
 		} else {
 			global.LOG.Error(err.Error())
@@ -33,6 +43,11 @@ func main() {
 
 	waitFor(syscall.SIGINT, syscall.SIGTERM)
 
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		global.LOG.Warn(err.Error())
+	}
 	global.LOG.Info("service has been shut down")
 }
 
