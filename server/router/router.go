@@ -24,7 +24,8 @@ func Setup() *gin.Engine {
 	engine.NoRoute()
 	engine.NoMethod()
 
-	engine.Handle(http.MethodGet, "/ping", pingHandler)
+	engine.Handle(http.MethodGet, "/ping/raw", pingRawHandler)
+	engine.Handle(http.MethodGet, "/ping/redis", pingRedisHandler)
 
 	return engine
 }

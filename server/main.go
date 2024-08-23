@@ -24,6 +24,9 @@ func main() {
 		return
 	}
 
+	global.SetupRedis()
+	global.LOG.Info("setup redis successfully")
+
 	server := &http.Server{
 		Addr:              global.CFG.ListenAddr,
 		Handler:           router.Setup(),
