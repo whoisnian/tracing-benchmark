@@ -1,4 +1,4 @@
-module github.com/whoisnian/tracing-benchmark
+module github.com/whoisnian/tracing-benchmark/server
 
 go 1.23.0
 
