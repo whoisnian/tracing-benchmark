@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 
@@ -8,26 +9,46 @@ import (
 	"github.com/whoisnian/tracing-benchmark/server/global"
 )
 
-func pingRawHandler(c *gin.Context) {
+func pingGinHandler(c *gin.Context) {
 	c.String(http.StatusOK, "pong")
 }
 
-func pingRedisHandler(c *gin.Context) {
-	err := global.RDB.Ping(c.Request.Context()).Err()
-	if err != nil {
-		global.LOG.ErrorContext(c.Request.Context(), "redis ping", slog.Any("error", err))
+func pingGinRedisHandler(c *gin.Context) {
+	if err := pingRedis(c.Request.Context()); err != nil {
+		global.LOG.ErrorContext(c.Request.Context(), "ping redis", slog.Any("error", err))
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 	c.String(http.StatusOK, "pong")
 }
 
-func pingMysqlHandler(c *gin.Context) {
-	err := global.DB.Raw("SELECT 1").Error
-	if err != nil {
-		global.LOG.ErrorContext(c.Request.Context(), "mysql select 1", slog.Any("error", err))
+func pingGinMysqlHandler(c *gin.Context) {
+	if err := pingMysql(c.Request.Context()); err != nil {
+		global.LOG.ErrorContext(c.Request.Context(), "ping mysql", slog.Any("error", err))
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 	c.String(http.StatusOK, "pong")
+}
+
+func pingGinRedisMysqlHandler(c *gin.Context) {
+	if err := pingRedis(c.Request.Context()); err != nil {
+		global.LOG.ErrorContext(c.Request.Context(), "ping redis", slog.Any("error", err))
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if err := pingMysql(c.Request.Context()); err != nil {
+		global.LOG.ErrorContext(c.Request.Context(), "ping mysql", slog.Any("error", err))
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.String(http.StatusOK, "pong")
+}
+
+func pingRedis(ctx context.Context) error {
+	return global.RDB.Ping(ctx).Err()
+}
+
+func pingMysql(ctx context.Context) error {
+	return global.DB.WithContext(ctx).Raw("SELECT 1").Error
 }

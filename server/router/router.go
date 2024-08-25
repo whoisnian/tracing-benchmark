@@ -24,9 +24,10 @@ func Setup() *gin.Engine {
 	engine.NoRoute()
 	engine.NoMethod()
 
-	engine.Handle(http.MethodGet, "/ping/raw", pingRawHandler)
-	engine.Handle(http.MethodGet, "/ping/redis", pingRedisHandler)
-	engine.Handle(http.MethodGet, "/ping/mysql", pingMysqlHandler)
+	engine.Handle(http.MethodGet, "/ping/G", pingGinHandler)             // trace: gin
+	engine.Handle(http.MethodGet, "/ping/GR", pingGinRedisHandler)       // trace: gin + redis
+	engine.Handle(http.MethodGet, "/ping/GM", pingGinMysqlHandler)       // trace: gin + mysql
+	engine.Handle(http.MethodGet, "/ping/GRM", pingGinRedisMysqlHandler) // trace: gin + redis + mysql
 
 	return engine
 }
