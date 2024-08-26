@@ -12,7 +12,7 @@ SOURCE_DIR="$SCRIPT_DIR/.."
 OUTPUT_DIR="$SOURCE_DIR/output"
 
 MODULE_NAME=$(go mod edit -fmt -print | grep -Po '(?<=^module ).*$')
-APP_NAME="tracing-benchmark-server"
+APP_NAME=$(basename "$MODULE_NAME")
 BUILDTIME=$(date --iso-8601=seconds)
 if [[ -z "$GITHUB_REF_NAME" ]]; then
   VERSION=$(git describe --tags 2> /dev/null || echo unknown)

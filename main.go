@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/whoisnian/tracing-benchmark/server/global"
-	"github.com/whoisnian/tracing-benchmark/server/router"
+	"github.com/whoisnian/tracing-benchmark/global"
+	"github.com/whoisnian/tracing-benchmark/router"
 )
 
 func main() {

@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/whoisnian/tracing-benchmark/server/global"
+	"github.com/whoisnian/tracing-benchmark/global"
 )
 
 func pingGinHandler(c *gin.Context) {

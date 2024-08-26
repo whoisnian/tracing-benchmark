@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/whoisnian/tracing-benchmark/server/global"
+	"github.com/whoisnian/tracing-benchmark/global"
 )
 
 func Setup() *gin.Engine {
