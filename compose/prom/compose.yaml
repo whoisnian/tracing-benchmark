@@ -1,0 +1,44 @@
+name: prom
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.53.2
+    restart: always
+    command:
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --config.file=/etc/prometheus/prometheus.yml
+    ports:
+      - 9090:9090
+    volumes:
+      - prometheus_data:/prometheus
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+  grafana:
+    image: grafana/grafana-oss:11.1.4
+    restart: always
+    environment:
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_SECURITY_DISABLE_GRAVATAR=true
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    ports:
+      - 8080:8080
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+
+volumes:
+  prometheus_data:
+  grafana_data:
