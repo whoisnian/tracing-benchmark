@@ -1,0 +1,66 @@
+name: app
+
+services:
+  mysql:
+    image: mysql:8.4.2
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    restart: always
+    volumes:
+      - mysql_data:/var/lib/mysql
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    ports:
+      - 127.0.0.1:3306:3306
+    healthcheck:
+      test: [
+          "CMD-SHELL",
+          "mysqladmin --silent -h localhost -u root -p'${MYSQL_ROOT_PASSWORD}' ping", # https://github.com/docker-library/mysql/issues/930
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.2.5
+    command:
+      - --maxmemory
+      - 1gb
+      - --maxmemory-policy
+      - allkeys-lru
+      - --requirepass
+      - ${REDIS_PASSWORD} # https://docs.docker.com/compose/compose-file/12-interpolation/
+    restart: always
+    volumes:
+      - redis_data:/data # https://github.com/redis/docker-library-redis/issues/140
+    ports:
+      - 127.0.0.1:6379:6379
+    healthcheck:
+      test: [
+          "CMD-SHELL",
+          "redis-cli -a '${REDIS_PASSWORD}' ping", # https://github.com/redis/docker-library-redis/issues/91
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  server:
+    image: ghcr.io/whoisnian/tracing-benchmark:v0.0.1
+    restart: always
+    environment:
+      - CFG_LISTEN_ADDR=0.0.0.0:8080
+      - CFG_MYSQL_DSN=${CFG_MYSQL_DSN}
+      - CFG_REDIS_URI=${CFG_REDIS_URI}
+    ports:
+      - 8080:8080
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  mysql_data: {}
+  redis_data: {}

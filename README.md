@@ -1,7 +1,7 @@
 # tracing-benchmark
 
 ## todo
-* [ ] api server with gin/gorm/redis
+* [x] api server with gin/gorm/redis
 * [ ] instrumentation with elastic apm-server
 * [ ] instrumentation with jaegertracing
 * [ ] instrumentation with openzipkin
