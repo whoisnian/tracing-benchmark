@@ -8,37 +8,52 @@ services:
       - --storage.tsdb.path=/prometheus
       - --storage.tsdb.retention.time=30d
       - --config.file=/etc/prometheus/prometheus.yml
-    ports:
-      - 9090:9090
     volumes:
       - prometheus_data:/prometheus
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    # ports: ["9090:9090"]
+    healthcheck: # https://github.com/prometheus/prometheus/issues/12000
+      test: ["CMD-SHELL", "promtool check healthy"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
 
   grafana:
-    image: grafana/grafana-oss:11.1.4
+    image: grafana/grafana-oss:11.2.0
     restart: always
     environment:
       - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
       - GF_SECURITY_DISABLE_GRAVATAR=true
-    ports:
-      - 3000:3000
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
     volumes:
       - grafana_data:/var/lib/grafana
+    ports: ["3000:3000"]
+    healthcheck: # https://grafana.com/docs/grafana/v11.2/developers/http_api/other/#health-api
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.49.1
-    ports:
-      - 8080:8080
+    restart: always
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
-    privileged: true
     devices:
       - /dev/kmsg:/dev/kmsg
+    privileged: true
+    # ports: ["8080:8080"]
+    healthcheck: # https://github.com/google/cadvisor/blob/6f3f25bac19f9f485935a19a28bdcf4edb507d80/deploy/Dockerfile#L71
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
 
 volumes:
-  prometheus_data:
-  grafana_data:
+  prometheus_data: {}
+  grafana_data: {}

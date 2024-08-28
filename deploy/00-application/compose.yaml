@@ -12,16 +12,16 @@ services:
     environment:
       - MYSQL_DATABASE=${MYSQL_DATABASE}
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-    ports:
-      - 127.0.0.1:3306:3306
-    healthcheck:
-      test: [
+    # ports: ["3306:3306"]
+    healthcheck: # https://github.com/docker-library/mysql/issues/930
+      test:
+        [
           "CMD-SHELL",
-          "mysqladmin --silent -h localhost -u root -p'${MYSQL_ROOT_PASSWORD}' ping", # https://github.com/docker-library/mysql/issues/930
+          "mysqladmin --silent -h localhost -u root -p'${MYSQL_ROOT_PASSWORD}' ping",
         ]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+      interval: 10s
+      timeout: 10s
+      retries: 30
 
   redis:
     image: redis:7.2.5
@@ -35,16 +35,12 @@ services:
     restart: always
     volumes:
       - redis_data:/data # https://github.com/redis/docker-library-redis/issues/140
-    ports:
-      - 127.0.0.1:6379:6379
-    healthcheck:
-      test: [
-          "CMD-SHELL",
-          "redis-cli -a '${REDIS_PASSWORD}' ping", # https://github.com/redis/docker-library-redis/issues/91
-        ]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+    # ports: ["6379:6379"]
+    healthcheck: # https://github.com/redis/docker-library-redis/issues/91
+      test: ["CMD-SHELL", "redis-cli -a '${REDIS_PASSWORD}' ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
 
   server:
     image: ghcr.io/whoisnian/tracing-benchmark:v0.0.1
@@ -53,8 +49,7 @@ services:
       - CFG_LISTEN_ADDR=0.0.0.0:8080
       - CFG_MYSQL_DSN=${CFG_MYSQL_DSN}
       - CFG_REDIS_URI=${CFG_REDIS_URI}
-    ports:
-      - 8080:8080
+    ports: ["8080:8080"]
     depends_on:
       mysql:
         condition: service_healthy
