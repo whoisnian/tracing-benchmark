@@ -1,43 +1,67 @@
 name: jaeger
 
 services:
-  jaeger:
-    image: jaegertracing/all-in-one:1.60
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
     restart: always
     volumes:
-      - jaeger_data:/badger
-    tmpfs:
-      - /tmp
+      - elasticsearch_data:/usr/share/elasticsearch/data
     environment:
-      - SPAN_STORAGE_TYPE=badger
-      - BADGER_EPHEMERAL=false
-      - BADGER_DIRECTORY_KEY=/badger/data/keys
-      - BADGER_DIRECTORY_VALUE=/badger/data/values
-    ports: # https://www.jaegertracing.io/docs/1.60/deployment/
-      - 16686:16686 # serve frontend
-      - 4317:4317 # OTLP over gRPC
-      - 4318:4318 # OTLP over HTTP
-    healthcheck:
+      - node.name=es
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - ELASTIC_PASSWORD=${JAEGER_ELASTIC_PASSWORD}
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+    # ports: ["9200:9200"]
+    healthcheck: # https://github.com/elastic/elasticsearch/blob/8.15/docs/reference/setup/install/docker/docker-compose.yml
       test:
         [
           "CMD-SHELL",
-          "/go/bin/all-in-one-linux status", # https://github.com/jaegertracing/jaeger/blob/0524ae6df8acac17e8ed52af9b86e6dee85a5e5e/cmd/internal/status/command.go
+          "curl -s http://localhost:9200 | grep -q 'missing authentication credentials'",
         ]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    depends_on:
-      pre-jaeger:
-        condition: service_completed_successfully
+      interval: 10s
+      timeout: 10s
+      retries: 120
 
-  pre-jaeger: # https://github.com/jaegertracing/jaeger/blob/0524ae6df8acac17e8ed52af9b86e6dee85a5e5e/plugin/storage/badger/docs/storage-file-non-root-permission.md
-    image: jaegertracing/all-in-one:1.60
-    user: root
-    entrypoint: sh -c "test -d /badger/data || install -o 10001 -g 10001 -m 0700 -d /badger/data"
-    volumes:
-      - jaeger_data:/badger
-    tmpfs:
-      - /tmp
+  collector:
+    image: jaegertracing/jaeger-collector:1.60
+    restart: always
+    environment:
+      - SPAN_STORAGE_TYPE=elasticsearch
+      - ES_SERVER_URLS=http://elasticsearch:9200
+      - ES_USERNAME=elastic
+      - ES_PASSWORD=${JAEGER_ELASTIC_PASSWORD}
+    ports: # https://www.jaegertracing.io/docs/1.60/deployment/#collector
+      - 4317:4317 # OTLP over gRPC
+      - 4318:4318 # OTLP over HTTP
+    healthcheck: # https://github.com/jaegertracing/jaeger/blob/0524ae6df8acac17e8ed52af9b86e6dee85a5e5e/cmd/internal/status/command.go
+      test: ["CMD-SHELL", "/go/bin/collector-linux status"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  query:
+    image: jaegertracing/jaeger-query:1.60
+    restart: always
+    environment:
+      - SPAN_STORAGE_TYPE=elasticsearch
+      - ES_SERVER_URLS=http://elasticsearch:9200
+      - ES_USERNAME=elastic
+      - ES_PASSWORD=${JAEGER_ELASTIC_PASSWORD}
+    ports: # https://www.jaegertracing.io/docs/1.60/deployment/#query-service--ui
+      - 16686:16686 # serve frontend
+    healthcheck: # https://github.com/jaegertracing/jaeger/blob/0524ae6df8acac17e8ed52af9b86e6dee85a5e5e/cmd/internal/status/command.go
+      test: ["CMD-SHELL", "/go/bin/query-linux status"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
 
 volumes:
-  jaeger_data:
+  elasticsearch_data: {}
