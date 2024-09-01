@@ -24,6 +24,9 @@ func main() {
 		return
 	}
 
+	global.SetupTracer()
+	global.LOG.Info("setup tracer successfully")
+
 	global.SetupRedis()
 	global.LOG.Info("setup redis successfully")
 	global.SetupMySQL()
