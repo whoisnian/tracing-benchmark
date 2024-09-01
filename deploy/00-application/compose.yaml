@@ -12,7 +12,7 @@ services:
     environment:
       - MYSQL_DATABASE=${MYSQL_DATABASE}
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-    # ports: ["3306:3306"]
+    ports: ["3306:3306"]
     healthcheck: # https://github.com/docker-library/mysql/issues/930
       test:
         [
@@ -35,7 +35,7 @@ services:
     restart: always
     volumes:
       - redis_data:/data # https://github.com/redis/docker-library-redis/issues/140
-    # ports: ["6379:6379"]
+    ports: ["6379:6379"]
     healthcheck: # https://github.com/redis/docker-library-redis/issues/91
       test: ["CMD-SHELL", "redis-cli -a '${REDIS_PASSWORD}' ping"]
       interval: 10s
