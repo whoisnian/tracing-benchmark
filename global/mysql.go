@@ -5,6 +5,7 @@ import (
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/plugin/opentelemetry/tracing"
 )
 
 var DB *gorm.DB
@@ -19,6 +20,9 @@ func SetupMySQL() {
 	var err error
 	DB, err = gorm.Open(mysql.New(mysql.Config{DSN: CFG.MysqlDsn}), &gorm.Config{})
 	if err != nil {
+		panic(err)
+	}
+	if err = DB.Use(tracing.NewPlugin(tracing.WithoutMetrics())); err != nil {
 		panic(err)
 	}
 
