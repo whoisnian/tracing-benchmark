@@ -56,6 +56,9 @@ func main() {
 	if err := server.Shutdown(ctx); err != nil {
 		global.LOG.Warn(err.Error())
 	}
+	if err := global.TR.Shutdown(ctx); err != nil {
+		global.LOG.Warn(err.Error())
+	}
 	global.LOG.Info("service has been shut down")
 }
 
