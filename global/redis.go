@@ -3,6 +3,7 @@ package global
 import (
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
+	"github.com/whoisnian/tracing-benchmark/pkg/apmredis"
 )
 
 var RDB *redis.Client
@@ -14,7 +15,13 @@ func SetupRedis() {
 	}
 
 	RDB = redis.NewClient(opts)
-	if err := redisotel.InstrumentTracing(RDB); err != nil {
+	switch CFG.TraceBackend {
+	case "otlp":
+		err = redisotel.InstrumentTracing(RDB)
+	case "apm":
+		RDB.AddHook(apmredis.NewHook())
+	}
+	if err != nil {
 		panic(err)
 	}
 }
