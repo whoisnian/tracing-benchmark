@@ -3,6 +3,8 @@ package global
 import (
 	"time"
 
+	"go.elastic.co/apm/module/apmsql/v2"
+	_ "go.elastic.co/apm/module/apmsql/v2/mysql"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/plugin/opentelemetry/tracing"
@@ -17,13 +19,21 @@ const (
 )
 
 func SetupMySQL() {
+	driverName := mysql.DefaultDriverName
+	if CFG.TraceBackend == "apm" {
+		driverName = apmsql.DriverPrefix + mysql.DefaultDriverName
+	}
+
 	var err error
-	DB, err = gorm.Open(mysql.New(mysql.Config{DSN: CFG.MysqlDsn}), &gorm.Config{})
+	DB, err = gorm.Open(mysql.New(mysql.Config{DriverName: driverName, DSN: CFG.MysqlDsn}), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
-	if err = DB.Use(tracing.NewPlugin(tracing.WithoutMetrics())); err != nil {
-		panic(err)
+
+	if CFG.TraceBackend == "otlp" {
+		if err = DB.Use(tracing.NewPlugin(tracing.WithoutMetrics())); err != nil {
+			panic(err)
+		}
 	}
 
 	sqlDB, err := DB.DB()

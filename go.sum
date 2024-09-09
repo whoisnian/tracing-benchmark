@@ -121,6 +121,8 @@ github.com/twitchyliquid64/golang-asm v0.15.1/go.mod h1:a1lVb/DtPvCB8fslRZhAngC2
 github.com/ugorji/go/codec v1.2.12 h1:9LC83zGrHhuUA9l16C9AHXAqEV/2wBQ4nkvumAE65EE=
 github.com/ugorji/go/codec v1.2.12/go.mod h1:UNopzCgEMSXjBc6AOMqYvWC1ktqTAfzJZUZgYf6w6lg=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
+go.elastic.co/apm/module/apmsql/v2 v2.6.2 h1:wKCfsGhU9L1w0xM5hVMnukzTb35eIFU3L68gg0v55wU=
+go.elastic.co/apm/module/apmsql/v2 v2.6.2/go.mod h1:W2tSac0SXRQwtj4DS+IJTb2oLWffW6fDHQmiw3GKAvk=
 go.elastic.co/apm/v2 v2.6.2 h1:VBplAxgbOgTv+Giw/FS91xJpHYw/q8fz/XKPvqC+7/o=
 go.elastic.co/apm/v2 v2.6.2/go.mod h1:33rOXgtHwbgZcDgi6I/GtCSMZQqgxkHC0IQT3gudKvo=
 go.elastic.co/fastjson v1.1.0 h1:3MrGBWWVIxe/xvsbpghtkFoPciPhOCmjsR/HfwEeQR4=
