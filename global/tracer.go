@@ -2,8 +2,12 @@ package global
 
 import (
 	"context"
+	"fmt"
+	"net/url"
+	"regexp"
 
 	"go.elastic.co/apm/v2"
+	"go.elastic.co/apm/v2/transport"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
@@ -79,14 +83,31 @@ type apmTracer struct {
 	itracer *apm.Tracer
 }
 
+// https://github.com/elastic/apm-agent-go/blob/096f5c06b782ae2b7c59d9eb4092a63a9a1886bd/config.go#L134
+var httpComment = regexp.MustCompile(`[^\t \x21-\x27\x2a-\x5b\x5d-\x7e\x80-\xff]`)
+
 func setupApmTracer() *apmTracer {
-	itracer, err := apm.NewTracerOptions(apm.TracerOptions{
-		ServiceName:    AppName,
-		ServiceVersion: Version,
+	serverURL, err := url.Parse(CFG.TraceApmEndpoint)
+	if err != nil {
+		panic(err)
+	}
+	httpTransport, err := transport.NewHTTPTransport(transport.HTTPTransportOptions{
+		UserAgent:  fmt.Sprintf("%s (%s %s)", transport.DefaultUserAgent(), AppName, httpComment.ReplaceAllString(Version, "_")),
+		ServerURLs: []*url.URL{serverURL},
 	})
 	if err != nil {
 		panic(err)
 	}
+	itracer, err := apm.NewTracerOptions(apm.TracerOptions{
+		ServiceName:        AppName,
+		ServiceVersion:     Version,
+		ServiceEnvironment: "production",
+		Transport:          httpTransport,
+	})
+	if err != nil {
+		panic(err)
+	}
+	apm.SetDefaultTracer(itracer)
 	return &apmTracer{itracer}
 }
 

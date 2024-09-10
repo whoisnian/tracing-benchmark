@@ -16,6 +16,7 @@ type Config struct {
 
 	TraceBackend      string // trace backend selector (none/otlp)
 	TraceOtlpEndpoint string // otlp: OTLP Trace HTTP Exporter endpoint URL
+	TraceApmEndpoint  string // apm: Elastic APM Server endpoint URL
 }
 
 func SetupConfig() {
@@ -27,6 +28,7 @@ func SetupConfig() {
 
 	CFG.TraceBackend = stringFromEnv("CFG_TRACE_BACKEND", "none")
 	CFG.TraceOtlpEndpoint = stringFromEnv("CFG_TRACE_OTLP_ENDPOINT", "http://127.0.0.1:4318")
+	CFG.TraceApmEndpoint = stringFromEnv("CFG_TRACE_APM_ENDPOINT", "http://127.0.0.1:8200")
 }
 
 func boolFromEnv(envKey string, defVal bool) bool {
