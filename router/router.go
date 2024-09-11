@@ -13,12 +13,20 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/whoisnian/tracing-benchmark/global"
+	"go.elastic.co/apm/module/apmgin/v2"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
 func Setup() *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 
 	engine := gin.New()
+	switch global.CFG.TraceBackend {
+	case "otlp":
+		engine.RouterGroup.Use(otelgin.Middleware(""))
+	case "apm":
+		engine.RouterGroup.Use(apmgin.Middleware(engine))
+	}
 	engine.RouterGroup.Use(Logger(global.LOG))
 	engine.RouterGroup.Use(Recovery(global.LOG))
 	engine.NoRoute()
