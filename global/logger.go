@@ -29,13 +29,15 @@ func (h *TraceHandler) Handle(ctx context.Context, r slog.Record) error {
 	)
 	switch CFG.TraceBackend {
 	case "otlp":
-		sc := trace.SpanFromContext(ctx).SpanContext()
-		traceID = sc.TraceID().String()
-		spanID = sc.SpanID().String()
+		if sc := trace.SpanFromContext(ctx).SpanContext(); sc.IsValid() {
+			traceID = sc.TraceID().String()
+			spanID = sc.SpanID().String()
+		}
 	case "apm":
-		tc := apm.SpanFromContext(ctx).TraceContext()
-		traceID = tc.Trace.String()
-		spanID = tc.Span.String()
+		if tc := apm.SpanFromContext(ctx).TraceContext(); tc.Trace.Validate() == nil && tc.Span.Validate() == nil {
+			traceID = tc.Trace.String()
+			spanID = tc.Span.String()
+		}
 	}
 
 	if CFG.TraceBackend != "none" {
