@@ -50,5 +50,5 @@ func pingRedis(ctx context.Context) error {
 }
 
 func pingMysql(ctx context.Context) error {
-	return global.DB.WithContext(ctx).Raw("SELECT 1").Error
+	return global.DB.WithContext(ctx).Exec("SELECT 1").Error
 }
