@@ -24,6 +24,20 @@ services:
       timeout: 10s
       retries: 120
 
+  post-elasticsearch: # https://github.com/elastic/elasticsearch/blob/d55f984299e0e88dee72ebd8255f7ff130859ad0/docs/reference/setup/install/docker/docker-compose.yml
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    command: >
+      bash -e -x -c '
+        test -f /usr/share/elasticsearch/data/.initialized && exit 0
+        touch /usr/share/elasticsearch/data/.initialized
+        curl --fail -s -X POST -u "elastic:${JAEGER_ELASTIC_PASSWORD}" -H "Content-Type: application/json" http://elasticsearch:9200/_security/user/kibana_system/_password -d "{\"password\":\"${JAEGER_KIBANA_PASSWORD}\"}"
+      '
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
   kibana:
     image: docker.elastic.co/kibana/kibana:8.15.0
     restart: always
@@ -34,8 +48,8 @@ services:
       - TELEMETRY_OPTIN=false
       - TELEMETRY_ALLOWCHANGINGOPTINSTATUS=false
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      - ELASTICSEARCH_USERNAME=elastic
-      - ELASTICSEARCH_PASSWORD=${JAEGER_ELASTIC_PASSWORD}
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=${JAEGER_KIBANA_PASSWORD}
     ports:
       - 5601:5601
     healthcheck:
@@ -48,8 +62,8 @@ services:
       timeout: 10s
       retries: 120
     depends_on:
-      elasticsearch:
-        condition: service_healthy
+      post-elasticsearch:
+        condition: service_completed_successfully
 
   collector:
     image: jaegertracing/jaeger-collector:1.60
@@ -68,8 +82,8 @@ services:
       timeout: 10s
       retries: 30
     depends_on:
-      elasticsearch:
-        condition: service_healthy
+      post-elasticsearch:
+        condition: service_completed_successfully
 
   query:
     image: jaegertracing/jaeger-query:1.60
@@ -87,8 +101,8 @@ services:
       timeout: 10s
       retries: 30
     depends_on:
-      elasticsearch:
-        condition: service_healthy
+      post-elasticsearch:
+        condition: service_completed_successfully
 
 volumes:
   elasticsearch_data: {}
