@@ -14,9 +14,10 @@ type Config struct {
 	MysqlDsn   string // mysql dsn from https://github.com/go-sql-driver/mysql/blob/master/README.md#dsn-data-source-name
 	RedisUri   string // redis uri from https://github.com/redis/redis-specifications/blob/master/uri/redis.txt
 
-	TraceBackend      string // trace backend selector (none/otlp)
-	TraceOtlpEndpoint string // otlp: OTLP Trace HTTP Exporter endpoint URL
-	TraceApmEndpoint  string // apm: Elastic APM Server endpoint URL
+	TraceBackend        string // trace backend selector (none/otlp/apm)
+	TraceOtlpEndpoint   string // otlp: OTLP Trace HTTP Exporter endpoint URL
+	TraceApmEndpoint    string // apm: Elastic APM Server endpoint URL
+	TraceApmSecretToken string // apm: Elastic APM Server secret token
 }
 
 func SetupConfig() {
@@ -29,6 +30,7 @@ func SetupConfig() {
 	CFG.TraceBackend = stringFromEnv("CFG_TRACE_BACKEND", "none")
 	CFG.TraceOtlpEndpoint = stringFromEnv("CFG_TRACE_OTLP_ENDPOINT", "http://127.0.0.1:4318")
 	CFG.TraceApmEndpoint = stringFromEnv("CFG_TRACE_APM_ENDPOINT", "http://127.0.0.1:8200")
+	CFG.TraceApmSecretToken = stringFromEnv("CFG_TRACE_APM_SECRET_TOKEN", "apm_secret_token")
 }
 
 func boolFromEnv(envKey string, defVal bool) bool {

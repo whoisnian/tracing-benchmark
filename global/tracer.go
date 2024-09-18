@@ -92,8 +92,9 @@ func setupApmTracer() *apmTracer {
 		panic(err)
 	}
 	httpTransport, err := transport.NewHTTPTransport(transport.HTTPTransportOptions{
-		UserAgent:  fmt.Sprintf("%s (%s %s)", transport.DefaultUserAgent(), AppName, httpComment.ReplaceAllString(Version, "_")),
-		ServerURLs: []*url.URL{serverURL},
+		UserAgent:   fmt.Sprintf("%s (%s %s)", transport.DefaultUserAgent(), AppName, httpComment.ReplaceAllString(Version, "_")),
+		ServerURLs:  []*url.URL{serverURL},
+		SecretToken: CFG.TraceApmSecretToken,
 	})
 	if err != nil {
 		panic(err)
