@@ -108,6 +108,7 @@ func setupApmTracer() *apmTracer {
 	if err != nil {
 		panic(err)
 	}
+	itracer.SetExitSpanMinDuration(0)
 	apm.SetDefaultTracer(itracer)
 	return &apmTracer{itracer}
 }
