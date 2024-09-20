@@ -2,12 +2,9 @@ package global
 
 import (
 	"context"
-	"fmt"
-	"net/url"
-	"regexp"
+	"os"
 
 	"go.elastic.co/apm/v2"
-	"go.elastic.co/apm/v2/transport"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
@@ -83,33 +80,25 @@ type apmTracer struct {
 	itracer *apm.Tracer
 }
 
-// https://github.com/elastic/apm-agent-go/blob/096f5c06b782ae2b7c59d9eb4092a63a9a1886bd/config.go#L134
-var httpComment = regexp.MustCompile(`[^\t \x21-\x27\x2a-\x5b\x5d-\x7e\x80-\xff]`)
-
 func setupApmTracer() *apmTracer {
-	serverURL, err := url.Parse(CFG.TraceApmEndpoint)
+	// some options cannot be set through the Tracer Config API
+	// so we configure options through environment variables
+	for _, pair := range [][]string{
+		{"ELASTIC_APM_SERVER_URL", CFG.TraceApmEndpoint},
+		{"ELASTIC_APM_SECRET_TOKEN", CFG.TraceApmSecretToken},
+		{"ELASTIC_APM_EXIT_SPAN_MIN_DURATION", "0ms"}, // disalbe dropping short exit spans
+		{"ELASTIC_APM_METRICS_INTERVAL", "0s"},        // disable collecting and reporting metrics
+		{"ELASTIC_APM_CENTRAL_CONFIG", "false"},       // disable polling configuration changes from the apm server
+	} {
+		if err := os.Setenv(pair[0], pair[1]); err != nil {
+			panic(err)
+		}
+	}
+
+	itracer, err := apm.NewTracer(AppName, Version)
 	if err != nil {
 		panic(err)
 	}
-	httpTransport, err := transport.NewHTTPTransport(transport.HTTPTransportOptions{
-		UserAgent:   fmt.Sprintf("%s (%s %s)", transport.DefaultUserAgent(), AppName, httpComment.ReplaceAllString(Version, "_")),
-		ServerURLs:  []*url.URL{serverURL},
-		SecretToken: CFG.TraceApmSecretToken,
-	})
-	if err != nil {
-		panic(err)
-	}
-	itracer, err := apm.NewTracerOptions(apm.TracerOptions{
-		ServiceName:        AppName,
-		ServiceVersion:     Version,
-		ServiceEnvironment: "production",
-		Transport:          httpTransport,
-	})
-	if err != nil {
-		panic(err)
-	}
-	itracer.SetMetricsInterval(0) // disable metrics
-	itracer.SetExitSpanMinDuration(0)
 	apm.SetDefaultTracer(itracer)
 	return &apmTracer{itracer}
 }
