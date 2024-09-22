@@ -2,7 +2,7 @@ name: jaeger
 
 services:
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTICSEARCH_IMAGE_TAG}
     restart: always
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
@@ -24,8 +24,8 @@ services:
       timeout: 10s
       retries: 120
 
-  post-elasticsearch: # https://github.com/elastic/elasticsearch/blob/d55f984299e0e88dee72ebd8255f7ff130859ad0/docs/reference/setup/install/docker/docker-compose.yml
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+  post-elasticsearch: # https://github.com/elastic/elasticsearch/blob/253e8544a65ad44581194068936f2a5d57c2c051/docs/reference/setup/install/docker/docker-compose.yml
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTICSEARCH_IMAGE_TAG}
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     command: >
@@ -38,8 +38,8 @@ services:
       elasticsearch:
         condition: service_healthy
 
-  es-rollover: # https://www.jaegertracing.io/docs/1.60/deployment/#elasticsearch-ilm-support
-    image: jaegertracing/jaeger-es-rollover:1.60
+  es-rollover: # https://www.jaegertracing.io/docs/1.61/deployment/#elasticsearch-ilm-support
+    image: jaegertracing/jaeger-es-rollover:${JAEGER_IMAGE_TAG}
     environment:
       - ES_USE_ILM=true
       - ES_USERNAME=elastic
@@ -50,7 +50,7 @@ services:
         condition: service_completed_successfully
 
   collector:
-    image: jaegertracing/jaeger-collector:1.60
+    image: jaegertracing/jaeger-collector:${JAEGER_IMAGE_TAG}
     restart: always
     environment:
       - SPAN_STORAGE_TYPE=elasticsearch
@@ -60,7 +60,7 @@ services:
       - ES_USE_ILM=true
       - ES_USE_ALIASES=true
       - ES_CREATE_INDEX_TEMPLATES=false
-    ports: # https://www.jaegertracing.io/docs/1.60/deployment/#collector
+    ports: # https://www.jaegertracing.io/docs/1.61/deployment/#collector
       - 4317:4317 # OTLP over gRPC
       - 4318:4318 # OTLP over HTTP
     healthcheck: # https://github.com/jaegertracing/jaeger/blob/0524ae6df8acac17e8ed52af9b86e6dee85a5e5e/cmd/internal/status/command.go
@@ -73,7 +73,7 @@ services:
         condition: service_completed_successfully
 
   query:
-    image: jaegertracing/jaeger-query:1.60
+    image: jaegertracing/jaeger-query:${JAEGER_IMAGE_TAG}
     restart: always
     environment:
       - SPAN_STORAGE_TYPE=elasticsearch

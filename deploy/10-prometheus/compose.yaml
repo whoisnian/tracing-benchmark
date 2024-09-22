@@ -2,7 +2,7 @@ name: prom
 
 services:
   prometheus:
-    image: prom/prometheus:v2.53.2
+    image: prom/prometheus:${PROMETHEUS_IMAGE_TAG}
     restart: always
     command:
       - --storage.tsdb.path=/prometheus
@@ -19,7 +19,7 @@ services:
       retries: 30
 
   grafana:
-    image: grafana/grafana-oss:11.2.0
+    image: grafana/grafana-oss:${GRAFANA_IMAGE_TAG}
     restart: always
     environment:
       - GF_ANALYTICS_REPORTING_ENABLED=false
@@ -36,7 +36,7 @@ services:
       retries: 30
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    image: gcr.io/cadvisor/cadvisor:${CADVISOR_IMAGE_TAG}
     restart: always
     volumes:
       - /:/rootfs:ro
