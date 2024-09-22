@@ -28,11 +28,15 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
-    command: >
+    # https://www.elastic.co/guide/en/observability/8.15/apm-privileges-to-publish-events.html
+    # https://www.elastic.co/guide/en/observability/8.15/apm-privileges-agent-central-config.html
+    command: > 
       bash -e -x -c '
         test -f /usr/share/elasticsearch/data/.initialized && exit 0
         touch /usr/share/elasticsearch/data/.initialized
         curl --fail -s -X POST -u "elastic:${APM_ELASTIC_PASSWORD}" -H "Content-Type: application/json" http://elasticsearch:9200/_security/user/kibana_system/_password -d "{\"password\":\"${APM_KIBANA_PASSWORD}\"}"
+        curl --fail -s -X POST -u "elastic:${APM_ELASTIC_PASSWORD}" -H "Content-Type: application/json" http://elasticsearch:9200/_security/role/apm_writer -d "{\"cluster\":[\"monitor\"],\"indices\":[{\"names\":[\"traces-apm*\",\"logs-apm*\",\"metrics-apm*\"],\"privileges\":[\"auto_configure\",\"create_doc\"]},{\"names\":[\".apm-agent-configuration\"],\"privileges\":[\"read\"],\"allow_restricted_indices\":true}]}"
+        curl --fail -s -X POST -u "elastic:${APM_ELASTIC_PASSWORD}" -H "Content-Type: application/json" http://elasticsearch:9200/_security/user/apm_writer -d "{\"roles\":[\"apm_writer\"],\"password\":\"${APM_WRITER_PASSWORD}\"}"
       '
     depends_on:
       elasticsearch:
@@ -74,8 +78,8 @@ services:
       - -E=max_procs=4
       - -E=apm-server.auth.secret_token=${APM_SECRET_TOKEN}
       - -E=output.elasticsearch.hosts=["http://elasticsearch:9200"]
-      - -E=output.elasticsearch.username=elastic
-      - -E=output.elasticsearch.password=${APM_ELASTIC_PASSWORD}
+      - -E=output.elasticsearch.username=apm_writer
+      - -E=output.elasticsearch.password=${APM_WRITER_PASSWORD}
     ports:
       - 8200:8200
     # healthcheck:
