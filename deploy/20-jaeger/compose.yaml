@@ -32,35 +32,19 @@ services:
       bash -e -x -c '
         test -f /usr/share/elasticsearch/data/.initialized && exit 0
         touch /usr/share/elasticsearch/data/.initialized
-        curl --fail -s -X POST -u "elastic:${JAEGER_ELASTIC_PASSWORD}" -H "Content-Type: application/json" http://elasticsearch:9200/_security/user/kibana_system/_password -d "{\"password\":\"${JAEGER_KIBANA_PASSWORD}\"}"
+        curl --fail -s -X PUT -u "elastic:${JAEGER_ELASTIC_PASSWORD}" -H "Content-Type: application/json" http://elasticsearch:9200/_ilm/policy/jaeger-ilm-policy -d "{\"policy\":{\"phases\":{\"hot\":{\"min_age\":\"0ms\",\"actions\":{\"rollover\":{\"max_age\":\"1d\"},\"set_priority\":{\"priority\":100}}},\"delete\":{\"min_age\":\"10d\",\"actions\":{\"delete\":{}}}}}}"
       '
     depends_on:
       elasticsearch:
         condition: service_healthy
 
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.15.0
-    restart: always
-    volumes:
-      - kibana_data:/usr/share/kibana/data
+  es-rollover: # https://www.jaegertracing.io/docs/1.60/deployment/#elasticsearch-ilm-support
+    image: jaegertracing/jaeger-es-rollover:1.60
     environment:
-      - SERVERNAME=kibana
-      - TELEMETRY_OPTIN=false
-      - TELEMETRY_ALLOWCHANGINGOPTINSTATUS=false
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      - ELASTICSEARCH_USERNAME=kibana_system
-      - ELASTICSEARCH_PASSWORD=${JAEGER_KIBANA_PASSWORD}
-    ports:
-      - 5601:5601
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1 302 Found'",
-        ]
-      interval: 10s
-      timeout: 10s
-      retries: 120
+      - ES_USE_ILM=true
+      - ES_USERNAME=elastic
+      - ES_PASSWORD=${JAEGER_ELASTIC_PASSWORD}
+    command: init http://elasticsearch:9200
     depends_on:
       post-elasticsearch:
         condition: service_completed_successfully
@@ -73,6 +57,9 @@ services:
       - ES_SERVER_URLS=http://elasticsearch:9200
       - ES_USERNAME=elastic
       - ES_PASSWORD=${JAEGER_ELASTIC_PASSWORD}
+      - ES_USE_ILM=true
+      - ES_USE_ALIASES=true
+      - ES_CREATE_INDEX_TEMPLATES=false
     ports: # https://www.jaegertracing.io/docs/1.60/deployment/#collector
       - 4317:4317 # OTLP over gRPC
       - 4318:4318 # OTLP over HTTP
@@ -82,7 +69,7 @@ services:
       timeout: 10s
       retries: 30
     depends_on:
-      post-elasticsearch:
+      es-rollover:
         condition: service_completed_successfully
 
   query:
@@ -93,6 +80,9 @@ services:
       - ES_SERVER_URLS=http://elasticsearch:9200
       - ES_USERNAME=elastic
       - ES_PASSWORD=${JAEGER_ELASTIC_PASSWORD}
+      - ES_USE_ILM=true
+      - ES_USE_ALIASES=true
+      - ES_CREATE_INDEX_TEMPLATES=false
     ports: # https://www.jaegertracing.io/docs/1.60/deployment/#query-service--ui
       - 16686:16686 # serve frontend
     healthcheck: # https://github.com/jaegertracing/jaeger/blob/0524ae6df8acac17e8ed52af9b86e6dee85a5e5e/cmd/internal/status/command.go
@@ -101,9 +91,8 @@ services:
       timeout: 10s
       retries: 30
     depends_on:
-      post-elasticsearch:
+      es-rollover:
         condition: service_completed_successfully
 
 volumes:
   elasticsearch_data: {}
-  kibana_data: {}

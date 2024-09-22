@@ -56,7 +56,7 @@ services:
       - ELASTICSEARCH_PASSWORD=${APM_KIBANA_PASSWORD}
       - xpack.fleet.packages=[{"name":"apm","version":"latest"}]
     ports:
-      - 5602:5601
+      - 5601:5601
     healthcheck:
       test:
         [
