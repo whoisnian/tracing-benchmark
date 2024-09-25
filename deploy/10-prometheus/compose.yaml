@@ -26,8 +26,10 @@ services:
       - GF_ANALYTICS_CHECK_FOR_UPDATES=false
       - GF_SECURITY_DISABLE_GRAVATAR=true
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
-    volumes:
+    volumes: # https://grafana.com/docs/grafana/v11.2/administration/provisioning/
       - grafana_data:/var/lib/grafana
+      - ./provisioning:/etc/grafana/provisioning
+      - ./dashboards:/etc/grafana/dashboards
     ports: ["3000:3000"]
     healthcheck: # https://grafana.com/docs/grafana/v11.2/developers/http_api/other/#health-api
       test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health || exit 1"]

@@ -1,0 +1,14 @@
+apiVersion: 1
+
+datasources:
+  - name: prometheus
+    type: prometheus
+    access: proxy
+    uid: CTB5A7I80KWWAH5VZQIY
+    url: http://prometheus:9090
+    basicAuth: false
+    isDefault: true
+    jsonData:
+      httpMethod: POST
+      timeInterval: 5s
+      queryTimeout: 60s
