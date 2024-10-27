@@ -1,4 +1,4 @@
-# syntax=docker.io/docker/dockerfile:1.9
+# syntax=docker.io/docker/dockerfile:1.10
 # https://docs.docker.com/build/dockerfile/frontend/
 
 FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.23-alpine AS build
