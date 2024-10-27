@@ -23,6 +23,8 @@ services:
       interval: 10s
       timeout: 10s
       retries: 120
+    cpus: '2.000'
+    mem_limit: 4gb
 
   post-elasticsearch: # https://github.com/elastic/elasticsearch/blob/253e8544a65ad44581194068936f2a5d57c2c051/docs/reference/setup/install/docker/docker-compose.yml
     image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTICSEARCH_IMAGE_TAG}
@@ -71,6 +73,8 @@ services:
     depends_on:
       es-rollover:
         condition: service_completed_successfully
+    cpus: '2.000'
+    mem_limit: 4gb
 
   query:
     image: jaegertracing/jaeger-query:${JAEGER_IMAGE_TAG}

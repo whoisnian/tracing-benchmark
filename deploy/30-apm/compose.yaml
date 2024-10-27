@@ -23,6 +23,8 @@ services:
       interval: 10s
       timeout: 10s
       retries: 120
+    cpus: '2.000'
+    mem_limit: 4gb
 
   post-elasticsearch: # https://github.com/elastic/elasticsearch/blob/d55f984299e0e88dee72ebd8255f7ff130859ad0/docs/reference/setup/install/docker/docker-compose.yml
     image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTICSEARCH_IMAGE_TAG}
@@ -94,6 +96,8 @@ services:
     depends_on:
       post-elasticsearch:
         condition: service_completed_successfully
+    cpus: '2.000'
+    mem_limit: 4gb
 
 volumes:
   elasticsearch_data: {}

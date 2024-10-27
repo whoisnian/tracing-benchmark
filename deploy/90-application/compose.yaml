@@ -61,6 +61,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    cpus: '4.000'
+    mem_limit: 4gb
 
 volumes:
   mysql_data: {}
