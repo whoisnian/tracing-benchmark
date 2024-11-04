@@ -27,6 +27,7 @@ func Setup() *gin.Engine {
 	case "apm":
 		engine.RouterGroup.Use(apmgin.Middleware(engine))
 	}
+	engine.RouterGroup.Use(Metrics(global.MT))
 	engine.RouterGroup.Use(Logger(global.LOG))
 	engine.RouterGroup.Use(Recovery(global.LOG))
 	engine.NoRoute()
@@ -36,8 +37,16 @@ func Setup() *gin.Engine {
 	engine.Handle(http.MethodGet, "/ping/GR", pingGinRedisHandler)       // trace: gin + redis
 	engine.Handle(http.MethodGet, "/ping/GM", pingGinMysqlHandler)       // trace: gin + mysql
 	engine.Handle(http.MethodGet, "/ping/GRM", pingGinRedisMysqlHandler) // trace: gin + redis + mysql
+	engine.Handle(http.MethodGet, "/metrics", gin.WrapH(global.MT.Handler))
 
 	return engine
+}
+
+func Metrics(mt *global.Metrics) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Next()
+		mt.RecordRequest(c.Writer.Status())
+	}
 }
 
 // https://github.com/gin-gonic/gin/blob/75ccf94d605a05fe24817fc2f166f6f2959d5cea/logger.go#L212

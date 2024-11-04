@@ -26,6 +26,8 @@ func main() {
 
 	global.SetupTracer()
 	global.LOG.Info("setup tracer successfully")
+	global.SetupMetrics()
+	global.LOG.Info("setup metrics successfully")
 
 	global.SetupRedis()
 	global.LOG.Info("setup redis successfully")
