@@ -46,16 +46,19 @@
 * services:
   * mysql: `8.4.3`
   * redis: `7.4.1`
-  * server: `v0.0.2` limits `cpus:4.000 mem_limit:4gb`
+  * server: `v0.0.3` limits `cpus:4.000 mem_limit:4gb`
 * start: `docker compose --env-file ./deploy/90-application/.env.example --file ./deploy/90-application/compose.yaml up -d`
 * down: `docker compose --env-file ./deploy/90-application/.env.example --file ./deploy/90-application/compose.yaml down -v`
 
 ## bench
-| backend | total requests | requests per second | mean | min | max | 50% | 75% | 90% | 95% | 99% |
-| ------- | -------------- | ------------------- | ---- | --- | --- | --- | --- | --- | --- | --- |
-| none    |                |                     |      |     |     |     |     |     |     |     |
-| otlp    |                |                     |      |     |     |     |     |     |     |     |
-| apm     |                |                     |      |     |     |     |     |     |     |     |
+| backend | total requests | requests per second | mean  | min | max | 50% | 75% | 90% | 95% | 99% |
+| ------- | -------------- | ------------------- | ----- | --- | --- | --- | --- | --- | --- | --- |
+| none    | 868239         | 14470.44            | 3.455 | 1   | 65  | 3   | 4   | 4   | 4   | 4   |
+| otlp*   | 467025         | 7778.65             | 6.428 | 0   | 86  | 4   | 4   | 7   | 16  | 63  |
+| apm*    | 602956         | 10044.54            | 4.978 | 0   | 85  | 4   | 4   | 5   | 6   | 53  |
+
+* otlp(server drop): total spans 1401186, saved spans 634837, dropped 766349 54.69%
+* apm(client drop): total spans 1839045, saved spans 1385113, dropped 453932 24.68%
 
 ```sh
 # To reduce the performance impact of docker-proxy, do not use http://127.0.0.1:8080 in benchmark.
@@ -63,9 +66,37 @@ CONTAINER_ID=$(docker compose --env-file ./deploy/90-application/.env.example --
 CONTAINER_IP=$(docker inspect --format '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $CONTAINER_ID | head -n1)
 
 # warm up
-ab -n 10000 -c 50 "http://$CONTAINER_IP:8080/ping/GRM" # longest request 67 ms
-ab -n 10000 -c 50 "http://$CONTAINER_IP:8080/ping/GRM" # longest request 12 ms
+ab -n 10000 -c 50 "http://$CONTAINER_IP:8080/ping/GRM" # longest request 80 ms
+ab -n 10000 -c 50 "http://$CONTAINER_IP:8080/ping/GRM" # longest request 24 ms
 
 # start
-ab -t 60 -n 100000 -c 50 "http://$CONTAINER_IP:8080/ping/GRM"
+ab -t 60 -n 1000000 -c 50 "http://$CONTAINER_IP:8080/ping/GRM"
+# Concurrency Level:      50
+# Time taken for tests:   60.039 seconds
+# Complete requests:      467025
+# Failed requests:        0
+# Total transferred:      56043000 bytes
+# HTML transferred:       1868100 bytes
+# Requests per second:    7778.65 [#/sec] (mean)
+# Time per request:       6.428 [ms] (mean)
+# Time per request:       0.129 [ms] (mean, across all concurrent requests)
+# Transfer rate:          911.56 [Kbytes/sec] received
+
+# Connection Times (ms)
+#               min  mean[+/-sd] median   max
+# Connect:        0    1   0.4      1       6
+# Processing:     0    5  10.7      2      86
+# Waiting:        0    4  10.5      2      84
+# Total:          0    6  10.7      4      86
+
+# Percentage of the requests served within a certain time (ms)
+#   50%      4
+#   66%      4
+#   75%      4
+#   80%      4
+#   90%      7
+#   95%     16
+#   98%     58
+#   99%     63
+#  100%     86 (longest request)
 ```
