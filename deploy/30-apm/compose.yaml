@@ -79,6 +79,7 @@ services:
       - -e
       - -E=max_procs=4
       - -E=apm-server.auth.secret_token=${APM_SECRET_TOKEN}
+      - -E=apm-server.expvar.enabled=true # curl -s 127.0.0.1:8200/debug/vars | grep apm-server.processor | sort
       - -E=output.elasticsearch.hosts=["http://elasticsearch:9200"]
       - -E=output.elasticsearch.username=apm_writer
       - -E=output.elasticsearch.password=${APM_WRITER_PASSWORD}
