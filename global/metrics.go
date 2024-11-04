@@ -76,7 +76,10 @@ func (ac *apmCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (ac *apmCollector) Collect(ch chan<- prometheus.Metric) {
-	stats := apm.DefaultTracer().Stats()
+	var stats apm.TracerStats
+	if CFG.TraceBackend == "apm" {
+		stats = apm.DefaultTracer().Stats()
+	}
 	ch <- prometheus.MustNewConstMetric(ac.ErrorsSendStreamDesc, prometheus.CounterValue, float64(stats.Errors.SendStream))
 	ch <- prometheus.MustNewConstMetric(ac.ErrorsSentDesc, prometheus.CounterValue, float64(stats.ErrorsSent))
 	ch <- prometheus.MustNewConstMetric(ac.ErrorsDroppedDesc, prometheus.CounterValue, float64(stats.ErrorsDropped))
