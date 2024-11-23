@@ -4,6 +4,9 @@ import (
 	"context"
 	"os"
 
+	"github.com/openzipkin/zipkin-go"
+	"github.com/openzipkin/zipkin-go/reporter"
+	httpreporter "github.com/openzipkin/zipkin-go/reporter/http"
 	"go.elastic.co/apm/v2"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
@@ -17,6 +20,7 @@ import (
 var TR Tracer
 
 type Tracer interface {
+	Source() any
 	Shutdown(context.Context) error
 }
 
@@ -28,6 +32,8 @@ func SetupTracer() {
 		TR = setupOtlpTracer()
 	case "apm":
 		TR = setupApmTracer()
+	case "zipkin":
+		TR = setupZipkinTracer()
 	default:
 		panic("unknown trace backend: " + CFG.TraceBackend)
 	}
@@ -36,6 +42,7 @@ func SetupTracer() {
 type nopTracer struct{}
 
 func setupNopTracer() *nopTracer                  { return &nopTracer{} }
+func (*nopTracer) Source() any                    { return nil }
 func (*nopTracer) Shutdown(context.Context) error { return nil }
 
 type otlpTracer struct {
@@ -72,6 +79,10 @@ func setupOtlpTracer() *otlpTracer {
 	return &otlpTracer{provider, otel.GetTracerProvider().Tracer(ModName)}
 }
 
+func (tr *otlpTracer) Source() any {
+	return tr.itracer
+}
+
 func (tr *otlpTracer) Shutdown(ctx context.Context) error {
 	return tr.provider.Shutdown(ctx)
 }
@@ -103,8 +114,40 @@ func setupApmTracer() *apmTracer {
 	return &apmTracer{itracer}
 }
 
+func (tr *apmTracer) Source() any {
+	return tr.itracer
+}
+
 func (tr *apmTracer) Shutdown(ctx context.Context) error {
 	tr.itracer.Flush(ctx.Done())
 	tr.itracer.Close()
 	return nil
+}
+
+type zipkinTracer struct {
+	reporter reporter.Reporter
+	itracer  *zipkin.Tracer
+}
+
+func setupZipkinTracer() *zipkinTracer {
+	reporter := httpreporter.NewReporter(CFG.TraceZipkinEndpoint)
+
+	endpoint, err := zipkin.NewEndpoint(AppName, CFG.ListenAddr)
+	if err != nil {
+		panic(err)
+	}
+
+	itracer, err := zipkin.NewTracer(reporter, zipkin.WithLocalEndpoint(endpoint))
+	if err != nil {
+		panic(err)
+	}
+	return &zipkinTracer{reporter, itracer}
+}
+
+func (tr *zipkinTracer) Source() any {
+	return tr.itracer
+}
+
+func (tr *zipkinTracer) Shutdown(ctx context.Context) error {
+	return tr.reporter.Close()
 }
