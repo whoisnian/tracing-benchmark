@@ -13,8 +13,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/openzipkin/zipkin-go"
-	zipkinhttp "github.com/openzipkin/zipkin-go/middleware/http"
 	"github.com/whoisnian/tracing-benchmark/global"
+	"github.com/whoisnian/tracing-benchmark/pkg/zipkingin"
 	"go.elastic.co/apm/module/apmgin/v2"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
@@ -29,11 +29,7 @@ func Setup() *gin.Engine {
 	case "apm":
 		engine.RouterGroup.Use(apmgin.Middleware(engine))
 	case "zipkin":
-		wrapH := zipkinhttp.NewServerMiddleware(global.TR.Source().(*zipkin.Tracer))
-		engine.RouterGroup.Use(func(c *gin.Context) {
-			next := func(_ http.ResponseWriter, _ *http.Request) { c.Next() }
-			wrapH(http.HandlerFunc(next)).ServeHTTP(c.Writer, c.Request)
-		})
+		engine.RouterGroup.Use(zipkingin.Middleware(global.TR.Source().(*zipkin.Tracer)))
 	}
 	engine.RouterGroup.Use(Metrics(global.MT))
 	engine.RouterGroup.Use(Logger(global.LOG))

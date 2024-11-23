@@ -137,7 +137,15 @@ func setupZipkinTracer() *zipkinTracer {
 		panic(err)
 	}
 
-	itracer, err := zipkin.NewTracer(reporter, zipkin.WithLocalEndpoint(endpoint))
+	itracer, err := zipkin.NewTracer(
+		reporter,
+		zipkin.WithTraceID128Bit(true),
+		zipkin.WithLocalEndpoint(endpoint),
+		zipkin.WithTags(map[string]string{
+			"serviceName":    AppName,
+			"serviceVersion": Version,
+		}),
+	)
 	if err != nil {
 		panic(err)
 	}

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/openzipkin/zipkin-go"
 	"go.elastic.co/apm/v2"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -52,6 +53,15 @@ func (h *TraceHandler) Handle(ctx context.Context, r slog.Record) error {
 			slog.String("trace.id", traceID),
 			slog.String("transaction.id", transactionID),
 			slog.String("span.id", spanID),
+		)
+	case "zipkin":
+		if sc := zipkin.SpanFromContext(ctx); sc != nil {
+			traceID = sc.Context().TraceID.String()
+			spanID = sc.Context().ID.String()
+		}
+		r.AddAttrs(
+			slog.String("trace_id", traceID),
+			slog.String("span_id", spanID),
 		)
 	}
 
