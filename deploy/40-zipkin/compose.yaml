@@ -1,0 +1,52 @@
+name: zipkin
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTICSEARCH_IMAGE_TAG}
+    restart: always
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    environment:
+      - node.name=es
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - ELASTIC_PASSWORD=${ZIPKIN_ELASTIC_PASSWORD}
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+    # ports: ["9200:9200"]
+    healthcheck: # https://github.com/elastic/elasticsearch/blob/8.15/docs/reference/setup/install/docker/docker-compose.yml
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s http://localhost:9200 | grep -q 'missing authentication credentials'",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 120
+    cpus: "2.000"
+    mem_limit: 4gb
+
+  zipkin:
+    image: openzipkin/zipkin-slim:${ZIPKIN_IMAGE_TAG}
+    restart: always
+    environment:
+      - STORAGE_TYPE=elasticsearch
+      - ES_HOSTS=elasticsearch:9200
+      - ES_USERNAME=elastic
+      - ES_PASSWORD=${ZIPKIN_ELASTIC_PASSWORD}
+      - JAVA_OPTS=-Xms1g -Xmx1g -XX:+ExitOnOutOfMemoryError
+    ports:
+      - 9411:9411
+    healthcheck: # https://github.com/openzipkin/zipkin/blob/ac5a965945e64ae31afebd9d417793960700b0ae/build-bin/docker/docker-healthcheck
+      test: ["CMD-SHELL", "/usr/local/bin/docker-healthcheck"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    cpus: '2.000'
+    mem_limit: 4gb
+
+volumes:
+  elasticsearch_data: {}
