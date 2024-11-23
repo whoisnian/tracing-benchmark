@@ -8,6 +8,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/plugin/opentelemetry/tracing"
+	gormopentracing "gorm.io/plugin/opentracing"
 )
 
 var DB *gorm.DB
@@ -32,6 +33,10 @@ func SetupMySQL() {
 
 	if CFG.TraceBackend == "otlp" {
 		if err = DB.Use(tracing.NewPlugin(tracing.WithoutMetrics())); err != nil {
+			panic(err)
+		}
+	} else if CFG.TraceBackend == "zipkin" {
+		if err = DB.Use(gormopentracing.New()); err != nil {
 			panic(err)
 		}
 	}
