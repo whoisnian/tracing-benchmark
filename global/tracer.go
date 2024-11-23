@@ -4,6 +4,8 @@ import (
 	"context"
 	"os"
 
+	"github.com/opentracing/opentracing-go"
+	zipkinot "github.com/openzipkin-contrib/zipkin-go-opentracing"
 	"github.com/openzipkin/zipkin-go"
 	"github.com/openzipkin/zipkin-go/reporter"
 	httpreporter "github.com/openzipkin/zipkin-go/reporter/http"
@@ -149,6 +151,7 @@ func setupZipkinTracer() *zipkinTracer {
 	if err != nil {
 		panic(err)
 	}
+	opentracing.SetGlobalTracer(zipkinot.Wrap(itracer))
 	return &zipkinTracer{reporter, itracer}
 }
 

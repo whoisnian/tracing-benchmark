@@ -5,7 +5,8 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/openzipkin/zipkin-go"
+	"github.com/opentracing/opentracing-go"
+	zipkinot "github.com/openzipkin-contrib/zipkin-go-opentracing"
 	"go.elastic.co/apm/v2"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -55,9 +56,9 @@ func (h *TraceHandler) Handle(ctx context.Context, r slog.Record) error {
 			slog.String("span.id", spanID),
 		)
 	case "zipkin":
-		if sc := zipkin.SpanFromContext(ctx); sc != nil {
-			traceID = sc.Context().TraceID.String()
-			spanID = sc.Context().ID.String()
+		if sc := opentracing.SpanFromContext(ctx); sc != nil {
+			traceID = sc.Context().(zipkinot.SpanContext).TraceID.String()
+			spanID = sc.Context().(zipkinot.SpanContext).ID.String()
 		}
 		r.AddAttrs(
 			slog.String("trace_id", traceID),

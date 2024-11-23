@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/openzipkin/zipkin-go"
+	"github.com/opentracing-contrib/go-gin/ginhttp"
+	"github.com/opentracing/opentracing-go"
 	"github.com/whoisnian/tracing-benchmark/global"
-	"github.com/whoisnian/tracing-benchmark/pkg/zipkingin"
 	"go.elastic.co/apm/module/apmgin/v2"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
@@ -29,7 +29,7 @@ func Setup() *gin.Engine {
 	case "apm":
 		engine.RouterGroup.Use(apmgin.Middleware(engine))
 	case "zipkin":
-		engine.RouterGroup.Use(zipkingin.Middleware(global.TR.Source().(*zipkin.Tracer)))
+		engine.RouterGroup.Use(ginhttp.Middleware(opentracing.GlobalTracer()))
 	}
 	engine.RouterGroup.Use(Metrics(global.MT))
 	engine.RouterGroup.Use(Logger(global.LOG))
