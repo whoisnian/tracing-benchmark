@@ -1,0 +1,70 @@
+name: skywalking
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTICSEARCH_IMAGE_TAG}
+    restart: always
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    environment:
+      - node.name=es
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - ELASTIC_PASSWORD=${SKYWALKING_ELASTIC_PASSWORD}
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+    # ports: ["9200:9200"]
+    healthcheck: # https://github.com/elastic/elasticsearch/blob/8.15/docs/reference/setup/install/docker/docker-compose.yml
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s http://localhost:9200 | grep -q 'missing authentication credentials'",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 120
+    cpus: "2.000"
+    mem_limit: 4gb
+
+  oap:
+    image: apache/skywalking-oap-server:${SKYWALKING_IMAGE_TAG}
+    restart: always
+    environment:
+      - SW_STORAGE=elasticsearch
+      - SW_STORAGE_ES_CLUSTER_NODES=elasticsearch:9200
+      - SW_ES_USER=elastic
+      - SW_ES_PASSWORD=${SKYWALKING_ELASTIC_PASSWORD}
+      - SW_HEALTH_CHECKER=default
+      - JAVA_OPTS=-Xms1g -Xmx1g
+    ports:
+      - 11800:11800 # gRPC
+      - 12800:12800 # HTTP
+    healthcheck: # https://skywalking.apache.org/docs/main/v10.1.0/en/api/health-check/
+      test: ["CMD-SHELL", "curl http://localhost:12800/healthcheck"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    cpus: "2.000"
+    mem_limit: 4gb
+
+  ui:
+    image: apache/skywalking-ui:${SKYWALKING_IMAGE_TAG}
+    restart: always
+    ports: ["8090:8090"]
+    healthcheck: # https://github.com/apache/skywalking/blob/v10.1.0/apm-webapp/src/main/java/org/apache/skywalking/oap/server/webapp/ApplicationStartUp.java
+      test: ["CMD-SHELL", "curl http://localhost:8090/internal/l7check"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+    environment:
+      - SW_SERVER_PORT=8090
+      - SW_OAP_ADDRESS=http://oap:12800
+    depends_on:
+      oap:
+        condition: service_healthy
+
+volumes:
+  elasticsearch_data: {}
