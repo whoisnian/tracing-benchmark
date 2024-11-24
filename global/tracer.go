@@ -22,7 +22,6 @@ import (
 var TR Tracer
 
 type Tracer interface {
-	Source() any
 	Shutdown(context.Context) error
 }
 
@@ -36,6 +35,8 @@ func SetupTracer() {
 		TR = setupApmTracer()
 	case "zipkin":
 		TR = setupZipkinTracer()
+	case "skywalking":
+		TR = setupNopTracer() // auto instrument with https://skywalking.apache.org/docs/skywalking-go/v0.5.0/en/concepts-and-designs/key-principles/
 	default:
 		panic("unknown trace backend: " + CFG.TraceBackend)
 	}
@@ -44,7 +45,6 @@ func SetupTracer() {
 type nopTracer struct{}
 
 func setupNopTracer() *nopTracer                  { return &nopTracer{} }
-func (*nopTracer) Source() any                    { return nil }
 func (*nopTracer) Shutdown(context.Context) error { return nil }
 
 type otlpTracer struct {
@@ -81,10 +81,6 @@ func setupOtlpTracer() *otlpTracer {
 	return &otlpTracer{provider, otel.GetTracerProvider().Tracer(ModName)}
 }
 
-func (tr *otlpTracer) Source() any {
-	return tr.itracer
-}
-
 func (tr *otlpTracer) Shutdown(ctx context.Context) error {
 	return tr.provider.Shutdown(ctx)
 }
@@ -114,10 +110,6 @@ func setupApmTracer() *apmTracer {
 	}
 	apm.SetDefaultTracer(itracer)
 	return &apmTracer{itracer}
-}
-
-func (tr *apmTracer) Source() any {
-	return tr.itracer
 }
 
 func (tr *apmTracer) Shutdown(ctx context.Context) error {
@@ -153,10 +145,6 @@ func setupZipkinTracer() *zipkinTracer {
 	}
 	opentracing.SetGlobalTracer(zipkinot.Wrap(itracer))
 	return &zipkinTracer{reporter, itracer}
-}
-
-func (tr *zipkinTracer) Source() any {
-	return tr.itracer
 }
 
 func (tr *zipkinTracer) Shutdown(ctx context.Context) error {

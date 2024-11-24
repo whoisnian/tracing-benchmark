@@ -24,6 +24,7 @@ func main() {
 		return
 	}
 
+	MustMatchTracer()
 	global.SetupTracer()
 	global.LOG.Info("setup tracer successfully")
 	global.SetupMetrics()

@@ -4,7 +4,9 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"strconv"
 
+	skywalkingtrace "github.com/apache/skywalking-go/toolkit/trace"
 	"github.com/opentracing/opentracing-go"
 	zipkinot "github.com/openzipkin-contrib/zipkin-go-opentracing"
 	"go.elastic.co/apm/v2"
@@ -29,6 +31,7 @@ func (h *TraceHandler) Handle(ctx context.Context, r slog.Record) error {
 		traceID       = "unknown"
 		spanID        = "unknown"
 		transactionID = "unknown"
+		segmentID     = "unknown"
 	)
 	switch CFG.TraceBackend {
 	case "otlp":
@@ -63,6 +66,15 @@ func (h *TraceHandler) Handle(ctx context.Context, r slog.Record) error {
 		r.AddAttrs(
 			slog.String("trace_id", traceID),
 			slog.String("span_id", spanID),
+		)
+	case "skywalking":
+		traceID = skywalkingtrace.GetTraceID()
+		segmentID = skywalkingtrace.GetSegmentID()
+		spanID = strconv.FormatInt(int64(skywalkingtrace.GetSpanID()), 10)
+		r.AddAttrs(
+			slog.String("traceId", traceID),
+			slog.String("segmentId", segmentID),
+			slog.String("spanId", spanID),
 		)
 	}
 
