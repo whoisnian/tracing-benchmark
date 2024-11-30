@@ -21,10 +21,20 @@ else
 fi
 
 goBuild() {
-  CGO_ENABLED=0 GOOS="$1" GOARCH="$2" go build -trimpath \
-    -ldflags="-s -w \
+  CGO_ENABLED=0 GOOS="$1" GOARCH="$2" go build -a \
+    -trimpath -ldflags="-s -w \
     -X '${MODULE_NAME}/global.ModName=${MODULE_NAME}' \
     -X '${MODULE_NAME}/global.AppName=${APP_NAME}' \
+    -X '${MODULE_NAME}/global.Version=${VERSION}' \
+    -X '${MODULE_NAME}/global.BuildTime=${BUILDTIME}'" \
+    -o "$OUTPUT_DIR"/"$3" "$SOURCE_DIR"
+}
+goBuildSW() {
+  CGO_ENABLED=0 GOOS="$1" GOARCH="$2" go build -a \
+    -toolexec="skywalking-go-agent" -tags=skywalking \
+    -trimpath -ldflags="-s -w \
+    -X '${MODULE_NAME}/global.ModName=${MODULE_NAME}' \
+    -X '${MODULE_NAME}/global.AppName=${APP_NAME}-sw' \
     -X '${MODULE_NAME}/global.Version=${VERSION}' \
     -X '${MODULE_NAME}/global.BuildTime=${BUILDTIME}'" \
     -o "$OUTPUT_DIR"/"$3" "$SOURCE_DIR"
@@ -32,17 +42,27 @@ goBuild() {
 
 if [[ "$1" == '.' ]]; then
   goBuild $(go env GOOS) $(go env GOARCH) "$APP_NAME"
+elif [[ "$1" == '.sw' ]]; then
+  goBuildSW $(go env GOOS) $(go env GOARCH) "${APP_NAME}-sw"
 elif [[ "$1" == 'all' ]]; then
   goBuild linux amd64 "${APP_NAME}-linux-amd64-${VERSION}"
   goBuild linux arm64 "${APP_NAME}-linux-arm64-${VERSION}"
+elif [[ "$1" == 'all-sw' ]]; then
+  goBuildSW linux amd64 "${APP_NAME}-sw-linux-amd64-${VERSION}"
+  goBuildSW linux arm64 "${APP_NAME}-sw-linux-arm64-${VERSION}"
 elif [[ "$#" == 2 ]]; then
   goBuild "$1" "$2" "${APP_NAME}-$1-$2-${VERSION}"
+elif [[ "$#" == 3 && "$1" == 'sw' ]]; then
+  goBuildSW "$2" "$3" "${APP_NAME}-$1-$2-$3-${VERSION}"
 else
   cat << EOF
 Usage:
-  $(basename $0) .            # build for current platform $(go env GOOS)-$(go env GOARCH)
-  $(basename $0) all          # build for all supported platforms
-  $(basename $0) darwin amd64 # build for specified platform
+  $(basename $0) .                # build for current platform $(go env GOOS)-$(go env GOARCH)
+  $(basename $0) .sw              # build for current platform $(go env GOOS)-$(go env GOARCH) with skywalking
+  $(basename $0) all              # build for all supported platforms
+  $(basename $0) all-sw           # build for all supported platforms with skywalking
+  $(basename $0) darwin amd64     # build for specified platform
+  $(basename $0) sw darwin amd64  # build for specified platform with skywalking
 
 Supported platforms:
   linux-amd64
