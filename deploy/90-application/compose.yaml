@@ -45,6 +45,7 @@ services:
   server:
     image: ghcr.io/whoisnian/tracing-benchmark:${SERVER_IMAGE_TAG}
     restart: always
+    profiles: ["default"]
     environment:
       - CFG_LISTEN_ADDR=0.0.0.0:8080
       - CFG_MYSQL_DSN=${CFG_MYSQL_DSN}
@@ -52,7 +53,30 @@ services:
       - CFG_TRACE_OTLP_ENDPOINT=${CFG_TRACE_OTLP_ENDPOINT}
       - CFG_TRACE_APM_ENDPOINT=${CFG_TRACE_APM_ENDPOINT}
       - CFG_TRACE_APM_SECRET_TOKEN=${CFG_TRACE_APM_SECRET_TOKEN}
+      - CFG_TRACE_ZIPKIN_ENDPOINT=${CFG_TRACE_ZIPKIN_ENDPOINT}
       - CFG_TRACE_BACKEND=${CFG_TRACE_BACKEND}
+    ports: ["8080:8080"]
+    extra_hosts: # https://github.com/moby/moby/blob/42f40b1d6dd7562342f832b9cd2adf9e668eeb76/daemon/container_operations.go#L118
+      - host.docker.internal:host-gateway
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    cpus: '4.000'
+    mem_limit: 4gb
+
+  server-sw:
+    image: ghcr.io/whoisnian/tracing-benchmark-sw:${SERVER_IMAGE_TAG}
+    restart: always
+    profiles: ["skywalking"]
+    environment:
+      - CFG_LISTEN_ADDR=0.0.0.0:8080
+      - CFG_MYSQL_DSN=${CFG_MYSQL_DSN}
+      - CFG_REDIS_URI=${CFG_REDIS_URI}
+      - CFG_TRACE_BACKEND=${CFG_TRACE_BACKEND}
+      - SW_AGENT_NAME=${SW_AGENT_NAME}
+      - SW_AGENT_REPORTER_GRPC_BACKEND_SERVICE=${SW_AGENT_REPORTER_GRPC_BACKEND_SERVICE}
     ports: ["8080:8080"]
     extra_hosts: # https://github.com/moby/moby/blob/42f40b1d6dd7562342f832b9cd2adf9e668eeb76/daemon/container_operations.go#L118
       - host.docker.internal:host-gateway
