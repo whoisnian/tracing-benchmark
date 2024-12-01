@@ -8,6 +8,16 @@ ARG APP_NAME
 ARG VERSION
 ARG BUILDTIME
 
+ADD https://github.com/apache/skywalking-go.git#v0.5.0 /skywalking-go
+RUN --mount=type=cache,target=/root/.cache/go-build/,id=build-sw-$TARGETARCH \
+    --mount=type=cache,target=/go/pkg/mod/ \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -C /skywalking-go/tools/go-agent -v -ldflags " \
+    -X 'main.version=0.5.0' \
+    -X 'main.goVersion=$(go env GOVERSION)' \
+    -X 'main.gitCommit=$(git -C /skywalking-go rev-parse --short HEAD)'" \
+    -o /usr/local/bin/skywalking-go-agent ./cmd
+
 # https://docs.docker.com/build/guide/mounts/
 WORKDIR /app
 RUN --mount=type=bind,source=go.sum,target=go.sum \
@@ -19,7 +29,6 @@ RUN --mount=type=bind,source=go.sum,target=go.sum \
 COPY . .
 RUN --mount=type=cache,target=/root/.cache/go-build/,id=build-sw-$TARGETARCH \
     --mount=type=cache,target=/go/pkg/mod/ \
-    --mount=type=bind,from=docker.io/apache/skywalking-go:0.5.0-go1.23,source=/usr/local/bin/skywalking-go-agent,target=/usr/local/bin/skywalking-go-agent \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
     go build -toolexec="skywalking-go-agent" -tags=skywalking \
     -trimpath -ldflags="-s -w \
