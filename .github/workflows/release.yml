@@ -17,6 +17,12 @@ jobs:
           check-latest: true
           cache: true
 
+      - name: Setup SkyWalking Go Agent
+        run: |
+          wget -P /tmp https://dlcdn.apache.org/skywalking/go/0.5.0/apache-skywalking-go-0.5.0-bin.tgz
+          tar -xvf /tmp/apache-skywalking-go-0.5.0-bin.tgz -C /tmp
+          cp /tmp/apache-skywalking-go-0.5.0-bin/bin/skywalking-go-agent-0.5.0-linux-amd64 /usr/local/bin/skywalking-go-agent
+
       - name: Build binaries
         run: bash -ex ./build/build.sh all && bash -ex ./build/build.sh all-sw
 

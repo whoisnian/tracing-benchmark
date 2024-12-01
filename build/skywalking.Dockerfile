@@ -1,7 +1,7 @@
 # syntax=docker.io/docker/dockerfile:1.10
 # https://docs.docker.com/build/dockerfile/frontend/
 
-FROM --platform=$BUILDPLATFORM docker.io/apache/skywalking-go:0.5.0-go1.23 AS build
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.23-alpine AS build
 
 ARG MODULE_NAME
 ARG APP_NAME
@@ -19,6 +19,7 @@ RUN --mount=type=bind,source=go.sum,target=go.sum \
 COPY . .
 RUN --mount=type=cache,target=/root/.cache/go-build/,id=build-sw-$TARGETARCH \
     --mount=type=cache,target=/go/pkg/mod/ \
+    --mount=type=bind,from=docker.io/apache/skywalking-go:0.5.0-go1.23,source=/usr/local/bin/skywalking-go-agent,target=/usr/local/bin/skywalking-go-agent \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
     go build -toolexec="skywalking-go-agent" -tags=skywalking \
     -trimpath -ldflags="-s -w \
