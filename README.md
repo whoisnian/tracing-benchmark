@@ -4,8 +4,8 @@
 * [x] api server with gin/gorm/redis
 * [x] instrumentation with elastic apm-server
 * [x] instrumentation with jaegertracing
-* [ ] instrumentation with openzipkin
-* [ ] instrumentation with skywalking
+* [x] instrumentation with openzipkin
+* [x] instrumentation with skywalking
 * [x] prometheus metrics with grafana
 * [ ] custom load generator
 * [ ] collect benchmark results
@@ -16,6 +16,8 @@
 | [10-prometheus](#10-prometheus)   | record resource usage of all containers    | grafana http://127.0.0.1:3000       | `admin` `KejTCKmMBIPxBm1m7h4f`   |
 | [20-jaeger](#20-jaeger)           | provide `otlp` trace backend               | jaeger-query http://127.0.0.1:16686 | none                             |
 | [30-apm](#30-apm)                 | provide `apm` trace backend                | kibana http://127.0.0.1:5601        | `elastic` `DVPMuwCOpH5iOPDFnjd5` |
+| [40-zipkin](#40-zipkin)           | provide `zipkin` trace backend             | zipkin-lens http://127.0.0.1:9411   | none                             |
+| [50-skywalking](#50-skywalking)   | provide `skywalking` trace backend         | skywalking-ui http://127.0.0.1:8090 | none                             |
 | [90-application](#90-application) | instrument api server using gin/gorm/redis | api http://127.0.0.1:8080           | none                             |
 
 ### 10-prometheus
@@ -42,20 +44,38 @@
 * start: `docker compose --env-file ./deploy/30-apm/.env.example --file ./deploy/30-apm/compose.yaml up -d`
 * down: `docker compose --env-file ./deploy/30-apm/.env.example --file ./deploy/30-apm/compose.yaml down -v`
 
+### 40-zipkin
+* services:
+  * elasticsearch: `8.15.3` limits `cpus:2.000 mem_limit:4gb`
+  * zipkin-slim: `3.4.2` limits `cpus:2.000 mem_limit:4gb`
+* start: `docker compose --env-file ./deploy/40-zipkin/.env.example --file ./deploy/40-zipkin/compose.yaml up -d`
+* down: `docker compose --env-file ./deploy/40-zipkin/.env.example --file ./deploy/40-zipkin/compose.yaml down -v`
+
+### 50-skywalking
+* services:
+  * elasticsearch: `8.15.3` limits `cpus:2.000 mem_limit:4gb`
+  * skywalking-oap-server: `10.1.0` limits `cpus:2.000 mem_limit:4gb`
+  * skywalking-ui: `10.1.0`
+* start: `docker compose --env-file ./deploy/50-skywalking/.env.example --file ./deploy/50-skywalking/compose.yaml up -d`
+* down: `docker compose --env-file ./deploy/50-skywalking/.env.example --file ./deploy/50-skywalking/compose.yaml down -v`
+
 ### 90-application
 * services:
   * mysql: `8.4.3`
   * redis: `7.4.1`
-  * server: `v0.0.3` limits `cpus:4.000 mem_limit:4gb`
-* start: `docker compose --env-file ./deploy/90-application/.env.example --file ./deploy/90-application/compose.yaml up -d`
-* down: `docker compose --env-file ./deploy/90-application/.env.example --file ./deploy/90-application/compose.yaml down -v`
+  * server: `v0.0.4` limits `cpus:4.000 mem_limit:4gb`
+* start default: `docker compose --env-file ./deploy/90-application/.env.example --file ./deploy/90-application/compose.yaml --profile default up -d`
+* start skywalking: `docker compose --env-file ./deploy/90-application/.env.example --file ./deploy/90-application/compose.yaml --profile skywalking up -d`
+* down all: `docker compose --env-file ./deploy/90-application/.env.example --file ./deploy/90-application/compose.yaml --profile default --profile skywalking down -v`
 
 ## bench
-| backend | total requests | requests per second | mean  | min | max | 50% | 75% | 90% | 95% | 99% |
-| ------- | -------------- | ------------------- | ----- | --- | --- | --- | --- | --- | --- | --- |
-| none    | 868239         | 14470.44            | 3.455 | 1   | 65  | 3   | 4   | 4   | 4   | 4   |
-| otlp*   | 467025         | 7778.65             | 6.428 | 0   | 86  | 4   | 4   | 7   | 16  | 63  |
-| apm*    | 602956         | 10044.54            | 4.978 | 0   | 85  | 4   | 4   | 5   | 6   | 53  |
+| backend    | total requests | requests per second | mean  | min | max | 50% | 75% | 90% | 95% | 99% |
+| ---------- | -------------- | ------------------- | ----- | --- | --- | --- | --- | --- | --- | --- |
+| none       | 868239         | 14470.44            | 3.455 | 1   | 65  | 3   | 4   | 4   | 4   | 4   |
+| otlp*      | 467025         | 7778.65             | 6.428 | 0   | 86  | 4   | 4   | 7   | 16  | 63  |
+| apm*       | 602956         | 10044.54            | 4.978 | 0   | 85  | 4   | 4   | 5   | 6   | 53  |
+| zipkin     |                |                     |       |     |     |     |     |     |     |     |
+| skywalking |                |                     |       |     |     |     |     |     |     |     |
 
 * otlp(server drop): total spans 1401186, saved spans 634837, dropped 766349 54.69%
 * apm(client drop): total spans 1839045, saved spans 1385113, dropped 453932 24.68%
