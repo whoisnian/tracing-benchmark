@@ -7,8 +7,7 @@
 * [x] instrumentation with openzipkin
 * [x] instrumentation with skywalking
 * [x] prometheus metrics with grafana
-* [ ] custom load generator
-* [ ] collect benchmark results
+* [x] collect benchmark results
 
 ## compose projects
 | project                           | objective                                  | endpoint                            | authorization                    |
@@ -68,54 +67,40 @@
 * down all: `docker compose --env-file ./deploy/90-application/.env.example --file ./deploy/90-application/compose.yaml --profile default --profile skywalking down -v`
 
 ## bench
-| backend    | total requests | requests per second | mean  | min | max | 50% | 75% | 90% | 95% | 99% |
-| ---------- | -------------- | ------------------- | ----- | --- | --- | --- | --- | --- | --- | --- |
-| none       | 868239         | 14470.44            | 3.455 | 1   | 65  | 3   | 4   | 4   | 4   | 4   |
-| otlp*      | 467025         | 7778.65             | 6.428 | 0   | 86  | 4   | 4   | 7   | 16  | 63  |
-| apm*       | 602956         | 10044.54            | 4.978 | 0   | 85  | 4   | 4   | 5   | 6   | 53  |
-| zipkin     |                |                     |       |     |     |     |     |     |     |     |
-| skywalking |                |                     |       |     |     |     |     |     |     |     |
+| backend    | total requests | requests per second | avg   | max   | 50%   | 75%   | 90%   | 99%   |
+| ---------- | -------------- | ------------------- | ----- | ----- | ----- | ----- | ----- | ----- |
+| none       | 873465         | 29018.83            | 0.276 | 4.97  | 0.261 | 0.316 | 0.380 | 0.631 |
+| otlp       | 529052         | 17576.42            | 0.489 | 8.68  | 0.405 | 0.535 | 0.764 | 2.13  |
+| apm        | 597651         | 19917.30            | 0.449 | 14.14 | 0.370 | 0.466 | 0.601 | 2.49  |
+| zipkin     | 384299         | 12806.59            | 0.770 | 18.61 | 0.517 | 0.810 | 1.38  | 4.84  |
+| skywalking | 491645         | 16334.06            | 0.542 | 10.67 | 0.440 | 0.573 | 0.801 | 2.79  |
 
-* otlp(server drop): total spans 1401186, saved spans 634837, dropped 766349 54.69%
-* apm(client drop): total spans 1839045, saved spans 1385113, dropped 453932 24.68%
+| backend    | total spans | saved spans | dropped spans | dropped percent | collector cpu | storage cpu |
+| ---------- | ----------- | ----------- | ------------- | --------------- | ------------- | ----------- |
+| otlp       | 529052*3    | 505345      | 1081811       | 68.16%          | 60%           | 200%        |
+| apm        | 597651*3    | 774151      | 1018802       | 56.82%          | 150%          | 200%        |
+| zipkin     | 384299*3    | 436442      | 716455        | 62.14%          | 180%          | 200%        |
+| skywalking | 491645*3    | 227041*3    | 793812        | 53.82%          | 170%          | 60%         |
 
 ```sh
 # To reduce the performance impact of docker-proxy, do not use http://127.0.0.1:8080 in benchmark.
-CONTAINER_ID=$(docker compose --env-file ./deploy/90-application/.env.example --file ./deploy/90-application/compose.yaml ps --quiet server | head -n1)
+CONTAINER_ID=$(docker compose --env-file ./deploy/90-application/.env.example --file ./deploy/90-application/compose.yaml ps --quiet server server-sw | head -n1)
 CONTAINER_IP=$(docker inspect --format '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $CONTAINER_ID | head -n1)
 
-# warm up
-ab -n 10000 -c 50 "http://$CONTAINER_IP:8080/ping/GRM" # longest request 80 ms
-ab -n 10000 -c 50 "http://$CONTAINER_IP:8080/ping/GRM" # longest request 24 ms
-
-# start
-ab -t 60 -n 1000000 -c 50 "http://$CONTAINER_IP:8080/ping/GRM"
-# Concurrency Level:      50
-# Time taken for tests:   60.039 seconds
-# Complete requests:      467025
-# Failed requests:        0
-# Total transferred:      56043000 bytes
-# HTML transferred:       1868100 bytes
-# Requests per second:    7778.65 [#/sec] (mean)
-# Time per request:       6.428 [ms] (mean)
-# Time per request:       0.129 [ms] (mean, across all concurrent requests)
-# Transfer rate:          911.56 [Kbytes/sec] received
-
-# Connection Times (ms)
-#               min  mean[+/-sd] median   max
-# Connect:        0    1   0.4      1       6
-# Processing:     0    5  10.7      2      86
-# Waiting:        0    4  10.5      2      84
-# Total:          0    6  10.7      4      86
-
-# Percentage of the requests served within a certain time (ms)
-#   50%      4
-#   66%      4
-#   75%      4
-#   80%      4
-#   90%      7
-#   95%     16
-#   98%     58
-#   99%     63
-#  100%     86 (longest request)
+# To avoid the bottleneck caused by ApacheBench's single thread, use https://github.com/wg/wrk/ instead.
+wrk -c8 -t8 -d10 --latency "http://$CONTAINER_IP:8080/ping/GRM" # warm up
+wrk -c8 -t8 -d30 --latency "http://$CONTAINER_IP:8080/ping/GRM" # actual benchmark
+# Running 30s test @ http://172.18.0.4:8080/ping/GRM
+#   8 threads and 8 connections
+#   Thread Stats   Avg      Stdev     Max   +/- Stdev
+#     Latency   276.50us   99.04us   4.97ms   80.39%
+#     Req/Sec     3.65k   120.72     4.14k    69.52%
+#   Latency Distribution
+#      50%  261.00us
+#      75%  316.00us
+#      90%  380.00us
+#      99%  631.00us
+#   873465 requests in 30.10s, 99.96MB read
+# Requests/sec:  29018.83
+# Transfer/sec:      3.32MB
 ```
