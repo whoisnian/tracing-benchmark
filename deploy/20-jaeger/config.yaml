@@ -1,0 +1,78 @@
+# https://github.com/jaegertracing/jaeger/blob/v2.1.0/cmd/jaeger/config-elasticsearch.yaml
+# https://github.com/jaegertracing/jaeger/blob/v2.1.0/cmd/jaeger/internal/all-in-one.yaml
+service:
+  extensions: [jaeger_storage, jaeger_query, healthcheckv2]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [jaeger_storage_exporter]
+  telemetry:
+    resource:
+      service.name: jaeger
+    metrics:
+      level: basic
+      address: 0.0.0.0:8888
+    logs:
+      level: info
+
+extensions:
+  healthcheckv2:
+    use_v2: true
+    http:
+      endpoint: 0.0.0.0:13133
+    grpc:
+
+  jaeger_query:
+    storage:
+      traces: some_storage
+    http:
+      endpoint: 0.0.0.0:16686
+
+  jaeger_storage:
+    backends:
+      some_storage:
+        elasticsearch:
+          server_urls:
+            - "${env:ES_SERVER_URL}"
+          auth:
+            basic:
+              username: "${env:ES_USERNAME}" 
+              password: "${env:ES_PASSWORD}"
+          indices:
+            index_prefix: "jaeger-main"
+            spans:
+              date_layout: "2006-01-02"
+              rollover_frequency: "day"
+              shards: 5
+              replicas: 1
+            services:
+              date_layout: "2006-01-02"
+              rollover_frequency: "day"
+              shards: 5
+              replicas: 1
+            dependencies:
+              date_layout: "2006-01-02"
+              rollover_frequency: "day"
+              shards: 5
+              replicas: 1
+            sampling:
+              date_layout: "2006-01-02"
+              rollover_frequency: "day"
+              shards: 5
+              replicas: 1
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+
+exporters:
+  jaeger_storage_exporter:
+    trace_storage: some_storage

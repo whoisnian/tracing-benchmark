@@ -31,8 +31,7 @@
 ### 20-jaeger
 * services:
   * elasticsearch: `8.15.3` limits `cpus:2.000 mem_limit:4gb`
-  * jaeger-collector: `1.62.0` limits `cpus:2.000 mem_limit:4gb`
-  * jaeger-query: `1.62.0`
+  * jaeger: `2.1.0` limits `GOMAXPROCS:2 cpus:2.000 mem_limit:4gb`
 * start: `docker compose --env-file ./deploy/20-jaeger/.env.example --file ./deploy/20-jaeger/compose.yaml up -d`
 * down: `docker compose --env-file ./deploy/20-jaeger/.env.example --file ./deploy/20-jaeger/compose.yaml down -v`
 

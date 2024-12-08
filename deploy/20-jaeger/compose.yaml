@@ -26,80 +26,33 @@ services:
     cpus: '2.000'
     mem_limit: 4gb
 
-  post-elasticsearch: # https://github.com/elastic/elasticsearch/blob/253e8544a65ad44581194068936f2a5d57c2c051/docs/reference/setup/install/docker/docker-compose.yml
-    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTICSEARCH_IMAGE_TAG}
+  jaeger:
+    image: jaegertracing/jaeger:${JAEGER_IMAGE_TAG}
+    restart: always
+    environment:
+      - GOMAXPROCS=2
+      - ES_SERVER_URL=http://elasticsearch:9200
+      - ES_USERNAME=elastic
+      - ES_PASSWORD=${JAEGER_ELASTIC_PASSWORD}
     volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-    command: >
-      bash -e -x -c '
-        test -f /usr/share/elasticsearch/data/.initialized && exit 0
-        touch /usr/share/elasticsearch/data/.initialized
-        curl --fail -s -X PUT -u "elastic:${JAEGER_ELASTIC_PASSWORD}" -H "Content-Type: application/json" http://elasticsearch:9200/_ilm/policy/jaeger-ilm-policy -d "{\"policy\":{\"phases\":{\"hot\":{\"min_age\":\"0ms\",\"actions\":{\"rollover\":{\"max_age\":\"1d\"},\"set_priority\":{\"priority\":100}}},\"delete\":{\"min_age\":\"10d\",\"actions\":{\"delete\":{}}}}}}"
-      '
+      - ./config.yaml:/cmd/jaeger/config.yaml
+    command: ["--config", "/cmd/jaeger/config.yaml"]
+    ports: # https://www.jaegertracing.io/docs/2.1/apis/#default-ports
+      - 4317:4317 # OTLP over gRPC
+      - 4318:4318 # OTLP over HTTP
+      - 8888:8888 # curl -s 127.0.0.1:8888/metrics | grep '_spans{'
+      - 16686:16686 # extension: jaeger_query
+      # - 13133:13133 # extension: healthcheckv2
+    healthcheck: # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.115.0/extension/healthcheckv2extension/README.md
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:13133/status || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
     depends_on:
       elasticsearch:
         condition: service_healthy
-
-  es-rollover: # https://www.jaegertracing.io/docs/1.61/deployment/#elasticsearch-ilm-support
-    image: jaegertracing/jaeger-es-rollover:${JAEGER_IMAGE_TAG}
-    environment:
-      - ES_USE_ILM=true
-      - ES_USERNAME=elastic
-      - ES_PASSWORD=${JAEGER_ELASTIC_PASSWORD}
-    command: init http://elasticsearch:9200
-    depends_on:
-      post-elasticsearch:
-        condition: service_completed_successfully
-
-  collector:
-    image: jaegertracing/jaeger-collector:${JAEGER_IMAGE_TAG}
-    restart: always
-    environment:
-      - SPAN_STORAGE_TYPE=elasticsearch
-      - ES_SERVER_URLS=http://elasticsearch:9200
-      - ES_USERNAME=elastic
-      - ES_PASSWORD=${JAEGER_ELASTIC_PASSWORD}
-      - ES_USE_ILM=true
-      - ES_USE_ALIASES=true
-      - ES_CREATE_INDEX_TEMPLATES=false
-      # - COLLECTOR_QUEUE_SIZE=5000 # default 2000
-      # - COLLECTOR_NUM_WORKERS=100 # default 50
-    ports: # https://www.jaegertracing.io/docs/1.61/deployment/#collector
-      - 4317:4317 # OTLP over gRPC
-      - 4318:4318 # OTLP over HTTP
-      - 14269:14269 # curl -s 127.0.0.1:14269/metrics | grep -P '(tracing-benchmark-docker|^jaeger_collector_spans_dropped_total)'
-    healthcheck: # https://github.com/jaegertracing/jaeger/blob/0524ae6df8acac17e8ed52af9b86e6dee85a5e5e/cmd/internal/status/command.go
-      test: ["CMD-SHELL", "/go/bin/collector-linux status"]
-      interval: 10s
-      timeout: 10s
-      retries: 30
-    depends_on:
-      es-rollover:
-        condition: service_completed_successfully
     cpus: '2.000'
     mem_limit: 4gb
-
-  query:
-    image: jaegertracing/jaeger-query:${JAEGER_IMAGE_TAG}
-    restart: always
-    environment:
-      - SPAN_STORAGE_TYPE=elasticsearch
-      - ES_SERVER_URLS=http://elasticsearch:9200
-      - ES_USERNAME=elastic
-      - ES_PASSWORD=${JAEGER_ELASTIC_PASSWORD}
-      - ES_USE_ILM=true
-      - ES_USE_ALIASES=true
-      - ES_CREATE_INDEX_TEMPLATES=false
-    ports: # https://www.jaegertracing.io/docs/1.60/deployment/#query-service--ui
-      - 16686:16686 # serve frontend
-    healthcheck: # https://github.com/jaegertracing/jaeger/blob/0524ae6df8acac17e8ed52af9b86e6dee85a5e5e/cmd/internal/status/command.go
-      test: ["CMD-SHELL", "/go/bin/query-linux status"]
-      interval: 10s
-      timeout: 10s
-      retries: 30
-    depends_on:
-      es-rollover:
-        condition: service_completed_successfully
 
 volumes:
   elasticsearch_data: {}
