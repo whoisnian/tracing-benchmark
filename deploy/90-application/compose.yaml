@@ -47,6 +47,7 @@ services:
     restart: always
     profiles: ["default"]
     environment:
+      - GOMAXPROCS=2
       - CFG_LISTEN_ADDR=0.0.0.0:8080
       - CFG_MYSQL_DSN=${CFG_MYSQL_DSN}
       - CFG_REDIS_URI=${CFG_REDIS_URI}
@@ -63,7 +64,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    cpus: '4.000'
+    cpus: '2.000'
     mem_limit: 4gb
 
   server-sw:
@@ -71,6 +72,7 @@ services:
     restart: always
     profiles: ["skywalking"]
     environment:
+      - GOMAXPROCS=2
       - CFG_LISTEN_ADDR=0.0.0.0:8080
       - CFG_MYSQL_DSN=${CFG_MYSQL_DSN}
       - CFG_REDIS_URI=${CFG_REDIS_URI}
@@ -85,7 +87,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    cpus: '4.000'
+    cpus: '2.000'
     mem_limit: 4gb
 
 volumes:

@@ -62,7 +62,7 @@
 * services:
   * mysql: `8.4.3`
   * redis: `7.4.1`
-  * server: `v0.0.4` limits `cpus:4.000 mem_limit:4gb`
+  * server: `v0.0.4` limits `GOMAXPROCS:2 cpus:2.000 mem_limit:4gb`
 * start default: `docker compose --env-file ./deploy/90-application/.env.example --file ./deploy/90-application/compose.yaml --profile default up -d`
 * start skywalking: `docker compose --env-file ./deploy/90-application/.env.example --file ./deploy/90-application/compose.yaml --profile skywalking up -d`
 * down all: `docker compose --env-file ./deploy/90-application/.env.example --file ./deploy/90-application/compose.yaml --profile default --profile skywalking down -v`
