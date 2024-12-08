@@ -39,7 +39,7 @@
 * services:
   * elasticsearch: `8.15.3` limits `cpus:2.000 mem_limit:4gb`
   * kibana: `8.15.3`
-  * apm-server: `8.15.3` limits `cpus:2.000 mem_limit:4gb`
+  * apm-server: `8.15.3` limits `GOMAXPROCS:2 cpus:2.000 mem_limit:4gb`
 * start: `docker compose --env-file ./deploy/30-apm/.env.example --file ./deploy/30-apm/compose.yaml up -d`
 * down: `docker compose --env-file ./deploy/30-apm/.env.example --file ./deploy/30-apm/compose.yaml down -v`
 
