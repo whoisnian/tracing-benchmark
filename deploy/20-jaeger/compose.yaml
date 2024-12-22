@@ -36,6 +36,8 @@ services:
       - ES_PASSWORD=${JAEGER_ELASTIC_PASSWORD}
     volumes:
       - ./config.yaml:/cmd/jaeger/config.yaml
+    tmpfs:
+      - /tmp
     command: ["--config", "/cmd/jaeger/config.yaml"]
     ports: # https://www.jaegertracing.io/docs/2.1/apis/#default-ports
       - 4317:4317 # OTLP over gRPC
