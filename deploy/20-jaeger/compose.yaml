@@ -26,6 +26,32 @@ services:
     cpus: '2.000'
     mem_limit: 4gb
 
+  # jaeger:
+  #   image: jaegertracing/jaeger-collector:1.64.0
+  #   restart: always
+  #   environment:
+  #     - GOMAXPROCS=2
+  #     - SPAN_STORAGE_TYPE=elasticsearch
+  #     - ES_SERVER_URLS=http://elasticsearch:9200
+  #     - ES_USERNAME=elastic
+  #     - ES_PASSWORD=${JAEGER_ELASTIC_PASSWORD}
+  #   tmpfs:
+  #     - /tmp
+  #   ports:
+  #     - 4318:4318
+  #     - 14269:14269
+  #     - 16686:16686
+  #   healthcheck: # https://github.com/jaegertracing/jaeger/blob/0524ae6df8acac17e8ed52af9b86e6dee85a5e5e/cmd/internal/status/command.go
+  #     test: ["CMD-SHELL", "/go/bin/collector-linux status"]
+  #     interval: 10s
+  #     timeout: 10s
+  #     retries: 30
+  #   depends_on:
+  #     elasticsearch:
+  #       condition: service_healthy
+  #   cpus: '2.000'
+  #   mem_limit: 4gb
+
   jaeger:
     image: jaegertracing/jaeger:${JAEGER_IMAGE_TAG}
     restart: always
